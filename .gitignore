@@ -14,3 +14,5 @@ hs_err_pid*
 .idea
 *.iml
 build/
+src/main/java/resources/saml/*
+.DS_Store
