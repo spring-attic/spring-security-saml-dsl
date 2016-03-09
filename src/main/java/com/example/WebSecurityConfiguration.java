@@ -8,6 +8,7 @@ import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.core.io.Resource;
 import org.springframework.security.saml.context.SAMLContextProvider;
 import org.springframework.security.saml.context.SAMLContextProviderLB;
+import org.springframework.security.saml.key.EmptyKeyManager;
 import org.springframework.security.saml.key.JKSKeyManager;
 import org.springframework.security.saml.key.KeyManager;
 import org.springframework.security.saml.metadata.ExtendedMetadata;
@@ -35,7 +36,7 @@ public class WebSecurityConfiguration {
         metadataGenerator.setEntityId("com:example");
         metadataGenerator.setExtendedMetadata(extendedMetadata);
         metadataGenerator.setIncludeDiscoveryExtension(false);
-        metadataGenerator.setKeyManager(keyManager());
+        metadataGenerator.setKeyManager(new EmptyKeyManager());
         metadataGenerator.setEntityBaseURL("https://localhost:8080/okta");
         return metadataGenerator;
     }
@@ -51,11 +52,16 @@ public class WebSecurityConfiguration {
 
     @Bean
     public KeyManager keyManager() {
-        DefaultResourceLoader loader = new DefaultResourceLoader();
-        Resource storeFile = loader.getResource("classpath:/saml/colombia.jks");
-        Map<String, String> passwords = new HashMap<>();
-        passwords.put("colombia", "colombia-password");
-        String defaultKey = "colombia";
-        return new JKSKeyManager(storeFile, "colombia-password", passwords, defaultKey);
+        return new EmptyKeyManager();
     }
+
+//    @Bean
+//    public KeyManager keyManager() {
+//        DefaultResourceLoader loader = new DefaultResourceLoader();
+//        Resource storeFile = loader.getResource("classpath:/saml/colombia.jks");
+//        Map<String, String> passwords = new HashMap<>();
+//        passwords.put("colombia", "colombia-password");
+//        String defaultKey = "colombia";
+//        return new JKSKeyManager(storeFile, "colombia-password", passwords, defaultKey);
+//    }
 }
