@@ -23,7 +23,7 @@ public class WebSecurityConfiguration {
     @Bean
     public FilesystemMetadataProvider pivotalTestMetadataProvider() throws IOException, MetadataProviderException {
         DefaultResourceLoader loader = new DefaultResourceLoader();
-        Resource storeFile = loader.getResource("classpath:/saml/colombia-colombia-metadata.xml");
+        Resource storeFile = loader.getResource("classpath:/saml/colombia-metadata.xml");
 
         File oktaMetadata = storeFile.getFile();
         return new FilesystemMetadataProvider(oktaMetadata);
@@ -45,7 +45,7 @@ public class WebSecurityConfiguration {
         SAMLContextProviderLB contextProvider = new SAMLContextProviderLB();
         contextProvider.setScheme("https");
         contextProvider.setServerName("localhost:8080");
-        contextProvider.setContextPath("okta");
+        contextProvider.setContextPath("/okta/");
         return contextProvider;
     }
 

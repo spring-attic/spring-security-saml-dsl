@@ -17,6 +17,8 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.saml.*;
+import org.springframework.security.saml.log.SAMLDefaultLogger;
+import org.springframework.security.saml.log.SAMLLogger;
 import org.springframework.security.saml.metadata.*;
 import org.springframework.security.saml.parser.ParserPoolHolder;
 import org.springframework.security.saml.processor.HTTPPostBinding;
@@ -218,6 +220,11 @@ public class SAMLConfiguration extends WebSecurityConfigurerAdapter {
         chains.add(new DefaultSecurityFilterChain(new AntPathRequestMatcher("/saml/discovery/**"),
             samlIDPDiscovery()));
         return new FilterChainProxy(chains);
+    }
+
+    @Bean
+    public SAMLLogger samlLogger() {
+        return new SAMLDefaultLogger();
     }
 
     @Override
