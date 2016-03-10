@@ -8,11 +8,12 @@ import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.core.io.Resource;
 import org.springframework.security.saml.context.SAMLContextProvider;
 import org.springframework.security.saml.context.SAMLContextProviderLB;
-import org.springframework.security.saml.key.EmptyKeyManager;
 import org.springframework.security.saml.key.JKSKeyManager;
 import org.springframework.security.saml.key.KeyManager;
 import org.springframework.security.saml.metadata.ExtendedMetadata;
 import org.springframework.security.saml.metadata.MetadataGenerator;
+import org.springframework.security.web.PortMapper;
+import org.springframework.security.web.PortMapperImpl;
 
 import java.io.File;
 import java.io.IOException;
@@ -36,7 +37,7 @@ public class WebSecurityConfiguration {
         metadataGenerator.setEntityId("com:example");
         metadataGenerator.setExtendedMetadata(extendedMetadata);
         metadataGenerator.setIncludeDiscoveryExtension(false);
-        metadataGenerator.setKeyManager(new EmptyKeyManager());
+        metadataGenerator.setKeyManager(keyManager());
         metadataGenerator.setEntityBaseURL("https://localhost:8080/okta");
         return metadataGenerator;
     }
@@ -51,17 +52,22 @@ public class WebSecurityConfiguration {
     }
 
     @Bean
-    public KeyManager keyManager() {
-        return new EmptyKeyManager();
+    public PortMapper portMapper() {
+        Map<String, String> portMappings = new HashMap<>();
+        portMappings.put("8080", "8080");
+
+        PortMapperImpl portMapper = new PortMapperImpl();
+        portMapper.setPortMappings(portMappings);
+        return portMapper;
     }
 
-//    @Bean
-//    public KeyManager keyManager() {
-//        DefaultResourceLoader loader = new DefaultResourceLoader();
-//        Resource storeFile = loader.getResource("classpath:/saml/colombia.jks");
-//        Map<String, String> passwords = new HashMap<>();
-//        passwords.put("colombia", "colombia-password");
-//        String defaultKey = "colombia";
-//        return new JKSKeyManager(storeFile, "colombia-password", passwords, defaultKey);
-//    }
+    @Bean
+    public KeyManager keyManager() {
+        DefaultResourceLoader loader = new DefaultResourceLoader();
+        Resource storeFile = loader.getResource("classpath:/saml/colombia.jks");
+        Map<String, String> passwords = new HashMap<>();
+        passwords.put("colombia", "colombia-password");
+        String defaultKey = "colombia";
+        return new JKSKeyManager(storeFile, "colombia-password", passwords, defaultKey);
+    }
 }

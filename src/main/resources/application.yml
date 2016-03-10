@@ -1,0 +1,5 @@
+server:
+  port: 8443
+  ssl:
+    key-store: src/main/resources/saml/colombia.jks
+    key-store-password: colombia-password
