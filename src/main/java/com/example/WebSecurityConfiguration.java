@@ -38,7 +38,7 @@ public class WebSecurityConfiguration {
         metadataGenerator.setExtendedMetadata(extendedMetadata);
         metadataGenerator.setIncludeDiscoveryExtension(false);
         metadataGenerator.setKeyManager(keyManager());
-        metadataGenerator.setEntityBaseURL("https://localhost:8080/okta");
+        metadataGenerator.setEntityBaseURL("https://localhost:8443/okta");
         return metadataGenerator;
     }
 
@@ -46,7 +46,7 @@ public class WebSecurityConfiguration {
     public SAMLContextProvider contextProvider() {
         SAMLContextProviderLB contextProvider = new SAMLContextProviderLB();
         contextProvider.setScheme("https");
-        contextProvider.setServerName("localhost:8080");
+        contextProvider.setServerName("localhost:8443");
         contextProvider.setContextPath("/okta/");
         return contextProvider;
     }
@@ -54,7 +54,7 @@ public class WebSecurityConfiguration {
     @Bean
     public PortMapper portMapper() {
         Map<String, String> portMappings = new HashMap<>();
-        portMappings.put("8080", "8080");
+        portMappings.put("8443", "8443");
 
         PortMapperImpl portMapper = new PortMapperImpl();
         portMapper.setPortMappings(portMappings);
