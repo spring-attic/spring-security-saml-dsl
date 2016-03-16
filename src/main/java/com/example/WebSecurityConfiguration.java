@@ -38,7 +38,7 @@ public class WebSecurityConfiguration {
         metadataGenerator.setExtendedMetadata(extendedMetadata);
         metadataGenerator.setIncludeDiscoveryExtension(false);
         metadataGenerator.setKeyManager(keyManager());
-        metadataGenerator.setEntityBaseURL("https://localhost:8443/okta");
+        metadataGenerator.setEntityBaseURL("https://localhost:8443");
         return metadataGenerator;
     }
 
@@ -47,7 +47,7 @@ public class WebSecurityConfiguration {
         SAMLContextProviderLB contextProvider = new SAMLContextProviderLB();
         contextProvider.setScheme("https");
         contextProvider.setServerName("localhost:8443");
-        contextProvider.setContextPath("/okta/");
+        contextProvider.setContextPath("/");
         return contextProvider;
     }
 

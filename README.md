@@ -4,7 +4,9 @@ Okta SAML example with Spring Security
 ## Set up a test okta
 
 1. http://developer.okta.com/
-1. TBA
+1. TBA. Notes:
+    - Be sure to 'assign application'
+    - Be sure to set the url to 'https://localhost:8443/'
 
 ## Running the app
 
