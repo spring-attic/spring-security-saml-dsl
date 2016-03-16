@@ -224,7 +224,10 @@ public class SAMLConfiguration extends WebSecurityConfigurerAdapter {
 
     @Bean
     public SAMLLogger samlLogger() {
-        return new SAMLDefaultLogger();
+        SAMLDefaultLogger samlDefaultLogger = new SAMLDefaultLogger();
+        samlDefaultLogger.setLogMessages(true);
+        samlDefaultLogger.setLogErrors(true);
+        return samlDefaultLogger;
     }
 
     @Override
