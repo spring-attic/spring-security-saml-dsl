@@ -34,16 +34,11 @@ Okta SAML example with Spring Security
 
 ## One time application setup
 
-1. Generate a keystore and key in `src/main/resources/saml`
-    1. `keytool -genkey -v -keystore colombia.jks -alias colombia -keyalg RSA -keysize 2048 -validity 10000`
-1.
+1. Generate a keystore and key in `src/main/resources/saml`:
+
+`keytool -genkey -v -keystore colombia.jks -alias colombia -keyalg RSA -keysize 2048 -validity 10000`
 
 ## Running the app
 
 1. `./gradlew clean bootRun`
 1. Navigate to `http://localhost:8443`
-1. TBC
-
-## notes to be refactored into instructions
-
-- `keytool -genkey -v -keystore colombia.jks -alias colombia -keyalg RSA -keysize 2048 -validity 10000`
