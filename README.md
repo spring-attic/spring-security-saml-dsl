@@ -3,7 +3,7 @@ Okta SAML example with Spring Security
 
 ## Set up a test okta
 
-### Basic setup
+#### Basic setup
 1. Navigate to [http://developer.okta.com/](http://developer.okta.com/)
 1. Click on *Get Started*
 1. Fill in your own name and email address
@@ -12,7 +12,7 @@ Okta SAML example with Spring Security
 1. Fill in the form presented to complete your registration, and click on *Create My Account*
 1. You should now have an empty Okta instance with no apps, and only one user.
 
-### Create a test application
+#### Create a test application
 1. Click on *Admin*, then *Add Applications*
 1. Click on *Create New App*
 1. Select *SAML 2.0* and click *Create*
@@ -26,13 +26,13 @@ Okta SAML example with Spring Security
 1. Click *View Setup Instructions*
 1. Copy the xml IDP Metadata from the Optional section into a filein your project: `src/main/resources/saml/colombia-metadata.xml`
 
-### Assign the test application
+#### Assign the test application
 1. Return to your Okta home screen and click *Admin*
 1. Click *Assign Applications*
 1. Select Colombia and yourself, then click *Next*
 1. Click *Confirm Assignments*
 
-## One time application setup
+# One time application setup
 
 1. Generate a keystore and key in `src/main/resources/saml`:
 
