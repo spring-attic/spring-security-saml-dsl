@@ -1,4 +1,4 @@
-# git-java-okta-saml-example
+# git-java-okta-dsl
 Okta SAML example with Spring Security
 
 ## Set up a test okta
