@@ -1,5 +1,11 @@
 package com.example.dsl;
 
+import org.opensaml.saml2.metadata.provider.FilesystemMetadataProvider;
+import org.opensaml.saml2.metadata.provider.MetadataProvider;
+import org.opensaml.saml2.metadata.provider.MetadataProviderException;
+import org.opensaml.xml.parse.StaticBasicParserPool;
+import org.springframework.core.io.DefaultResourceLoader;
+import org.springframework.core.io.Resource;
 import org.springframework.security.config.annotation.ObjectPostProcessor;
 import org.springframework.security.config.annotation.SecurityConfigurerAdapter;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
@@ -7,6 +13,8 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.saml.SAMLDiscovery;
 import org.springframework.security.saml.SAMLEntryPoint;
 import org.springframework.security.saml.SAMLProcessingFilter;
+import org.springframework.security.saml.metadata.CachingMetadataManager;
+import org.springframework.security.saml.metadata.ExtendedMetadataDelegate;
 import org.springframework.security.saml.metadata.MetadataDisplayFilter;
 import org.springframework.security.saml.metadata.MetadataGeneratorFilter;
 import org.springframework.security.saml.websso.WebSSOProfileOptions;
@@ -17,8 +25,12 @@ import org.springframework.security.web.access.channel.ChannelProcessingFilter;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+
+import static com.example.dsl.MetadataGeneratorBuilder.extendedMetadata;
 
 public class BarConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFilterChain, HttpSecurity> {
     private ObjectPostProcessor<Object> objectPostProcessor = new ObjectPostProcessor<Object>() {
@@ -56,8 +68,25 @@ public class BarConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFilt
         return samlWebSSOProcessingFilter;
     }
 
-    private MetadataGeneratorFilter metadataGeneratorFilter() {
-        return new MetadataGeneratorFilter(MetadataGeneratorBuilder.build());
+    private MetadataGeneratorFilter metadataGeneratorFilter() throws IOException, MetadataProviderException {
+        DefaultResourceLoader loader = new DefaultResourceLoader();
+        Resource storeFile = loader.getResource("classpath:/saml/colombia-metadata.xml");
+
+        File oktaMetadata = storeFile.getFile();
+        FilesystemMetadataProvider filesystemMetadataProvider = new FilesystemMetadataProvider(oktaMetadata);
+        filesystemMetadataProvider.setParserPool(new StaticBasicParserPool());
+
+        ExtendedMetadataDelegate extendedMetadataDelegate = new ExtendedMetadataDelegate(filesystemMetadataProvider, extendedMetadata());
+        extendedMetadataDelegate.setMetadataTrustCheck(false);
+        extendedMetadataDelegate.setMetadataRequireSignature(false);
+
+        List<MetadataProvider> providers = new ArrayList<>();
+        providers.add(extendedMetadataDelegate);
+        CachingMetadataManager cachingMetadataManager = new CachingMetadataManager(providers);
+
+        MetadataGeneratorFilter metadataGeneratorFilter = new MetadataGeneratorFilter(MetadataGeneratorBuilder.build());
+        metadataGeneratorFilter.setManager(cachingMetadataManager);
+        return metadataGeneratorFilter;
     }
 
     private FilterChainProxy samlFilter() throws Exception {
