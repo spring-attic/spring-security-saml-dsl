@@ -22,6 +22,7 @@
 //
 //@Configuration
 //public class WebSecurityConfiguration {
+//    COVERED
 //    @Bean
 //    public FilesystemMetadataProvider pivotalTestMetadataProvider() throws IOException, MetadataProviderException {
 //        DefaultResourceLoader loader = new DefaultResourceLoader();
@@ -31,6 +32,7 @@
 //        return new FilesystemMetadataProvider(oktaMetadata);
 //    }
 //
+//    COVERED
 //    @Bean
 //    public MetadataGenerator metadataGenerator(ExtendedMetadata extendedMetadata) {
 //        MetadataGenerator metadataGenerator = new MetadataGenerator();
@@ -42,6 +44,7 @@
 //        return metadataGenerator;
 //    }
 //
+//    ??????????????
 //    @Bean
 //    public SAMLContextProvider contextProvider() {
 //        SAMLContextProviderLB contextProvider = new SAMLContextProviderLB();
@@ -51,6 +54,7 @@
 //        return contextProvider;
 //    }
 //
+//    ?????
 //    @Bean
 //    public PortMapper portMapper() {
 //        Map<String, String> portMappings = new HashMap<>();
@@ -61,6 +65,7 @@
 //        return portMapper;
 //    }
 //
+//    COVERED
 //    @Bean
 //    public KeyManager keyManager() {
 //        DefaultResourceLoader loader = new DefaultResourceLoader();
