@@ -1,5 +1,6 @@
-package com.example.dsl;
+package com.example;
 
+import com.example.dsl.OktaConfigurer;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.config.annotation.SecurityConfigurer;
@@ -12,10 +13,10 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 @Configuration
 @Order
 @EnableGlobalMethodSecurity(securedEnabled = true)
-class FooConfiguration extends WebSecurityConfigurerAdapter {
+class SecurityConfiguration extends WebSecurityConfigurerAdapter {
     @Override
     protected void configure(HttpSecurity http) throws Exception {
-        SecurityConfigurer securityConfigurerAdapter = new BarConfigurer();
+        SecurityConfigurer securityConfigurerAdapter = new OktaConfigurer();
         http.apply(securityConfigurerAdapter);
 
         http

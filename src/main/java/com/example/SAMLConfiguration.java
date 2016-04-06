@@ -50,36 +50,43 @@
 //    @Lazy
 //    private MetadataGenerator metadataGenerator;
 //
+//    COVERED
 //    @Bean
 //    public static SAMLBootstrap sAMLBootstrap() {
 //        return new SAMLBootstrap();
 //    }
 //
+//    ?????
 //    @Bean
 //    public VelocityEngine velocityEngine() {
 //        return VelocityFactory.getEngine();
 //    }
 //
+//    COVERED
 //    @Bean(initMethod = "initialize")
 //    public StaticBasicParserPool parserPool() {
 //        return new StaticBasicParserPool();
 //    }
 //
+//    COVERED
 //    @Bean(name = "parserPoolHolder")
 //    public ParserPoolHolder parserPoolHolder() {
 //        return new ParserPoolHolder();
 //    }
 //
+//    ?????
 //    @Bean
 //    public MultiThreadedHttpConnectionManager multiThreadedHttpConnectionManager() {
 //        return new MultiThreadedHttpConnectionManager();
 //    }
 //
+//    ?????
 //    @Bean
 //    public HttpClient httpClient() {
 //        return new HttpClient(multiThreadedHttpConnectionManager());
 //    }
 //
+//    ?????
 //    @Bean
 //    public SAMLAuthenticationProvider samlAuthenticationProvider() {
 //        SAMLAuthenticationProvider samlAuthenticationProvider = new SAMLAuthenticationProvider();
@@ -87,26 +94,31 @@
 //        return samlAuthenticationProvider;
 //    }
 //
+//    ?????
 //    @Bean
 //    public WebSSOProfileConsumer webSSOprofileConsumer() {
 //        return new WebSSOProfileConsumerImpl();
 //    }
 //
+//    ?????
 //    @Bean
 //    public WebSSOProfileConsumerHoKImpl hokWebSSOprofileConsumer() {
 //        return new WebSSOProfileConsumerHoKImpl();
 //    }
 //
+//    ?????
 //    @Bean
 //    public WebSSOProfile webSSOprofile() {
 //        return new WebSSOProfileImpl();
 //    }
 //
+//    ?????
 //    @Bean
 //    public SingleLogoutProfile logoutProfile() {
 //        return new SingleLogoutProfileImpl();
 //    }
 //
+//    COVERED
 //    @Bean
 //    public WebSSOProfileOptions defaultWebSSOProfileOptions() {
 //        WebSSOProfileOptions webSSOProfileOptions = new WebSSOProfileOptions();
@@ -114,6 +126,7 @@
 //        return webSSOProfileOptions;
 //    }
 //
+//    COVERED
 //    @Bean
 //    public SAMLEntryPoint samlEntryPoint() {
 //        SAMLEntryPoint samlEntryPoint = new SAMLEntryPoint();
@@ -121,6 +134,7 @@
 //        return samlEntryPoint;
 //    }
 //
+//    COVERED
 //    @Bean
 //    public ExtendedMetadata extendedMetadata() {
 //        ExtendedMetadata extendedMetadata = new ExtendedMetadata();
@@ -129,11 +143,13 @@
 //        return extendedMetadata;
 //    }
 //
+//    COVERED
 //    @Bean
 //    public SAMLDiscovery samlIDPDiscovery() {
 //        return new SAMLDiscovery();
 //    }
 //
+//    COVERED
 //    @Bean
 //    public ExtendedMetadataDelegate oktaExtendedMetadataProvider(FilesystemMetadataProvider filesystemMetadataProvider) throws MetadataProviderException, IOException {
 //        filesystemMetadataProvider.setParserPool(parserPool());
@@ -144,6 +160,7 @@
 //        return extendedMetadataDelegate;
 //    }
 //
+//    COVERED
 //    @Bean
 //    public CachingMetadataManager metadata(ExtendedMetadataDelegate extendedMetadataDelegate) throws MetadataProviderException, IOException {
 //        List<MetadataProvider> providers = new ArrayList<>();
@@ -151,11 +168,13 @@
 //        return new CachingMetadataManager(providers);
 //    }
 //
+//    COVERED
 //    @Bean
 //    public MetadataDisplayFilter metadataDisplayFilter() {
 //        return new MetadataDisplayFilter();
 //    }
 //
+//    COVERED
 //    @Bean
 //    public SAMLProcessingFilter samlWebSSOProcessingFilter() throws Exception {
 //        SAMLProcessingFilter samlWebSSOProcessingFilter = new SAMLProcessingFilter();
@@ -163,11 +182,13 @@
 //        return samlWebSSOProcessingFilter;
 //    }
 //
+//    COVERED
 //    @Bean
 //    public MetadataGeneratorFilter metadataGeneratorFilter() {
 //        return new MetadataGeneratorFilter(metadataGenerator);
 //    }
 //
+//    ?????
 //    @Bean
 //    public SimpleUrlLogoutSuccessHandler successLogoutHandler() {
 //        SimpleUrlLogoutSuccessHandler successLogoutHandler = new SimpleUrlLogoutSuccessHandler();
@@ -175,16 +196,19 @@
 //        return successLogoutHandler;
 //    }
 //
+//    ?????
 //    @Bean
 //    public HTTPPostBinding httpPostBinding() {
 //        return new HTTPPostBinding(parserPool(), velocityEngine());
 //    }
 //
+//    ?????
 //    @Bean
 //    public HTTPRedirectDeflateBinding httpRedirectDeflateBinding() {
 //        return new HTTPRedirectDeflateBinding(parserPool());
 //    }
 //
+//    ?????
 //    @Bean
 //    public SAMLProcessorImpl processor() {
 //        Collection<SAMLBinding> bindings = new ArrayList<>();
@@ -193,6 +217,7 @@
 //        return new SAMLProcessorImpl(bindings);
 //    }
 //
+//    COVERED
 //    @Bean
 //    public FilterChainProxy samlFilter() throws Exception {
 //        List<SecurityFilterChain> chains = new ArrayList<>();
@@ -207,6 +232,7 @@
 //        return new FilterChainProxy(chains);
 //    }
 //
+//    ?????
 //    @Bean
 //    public SAMLLogger samlLogger() {
 //        SAMLDefaultLogger samlDefaultLogger = new SAMLDefaultLogger();
@@ -215,6 +241,7 @@
 //        return samlDefaultLogger;
 //    }
 //
+//    COVERED
 //    @Override
 //    protected void configure(HttpSecurity http) throws Exception {
 //        http
@@ -238,6 +265,7 @@
 //            .anyRequest().authenticated();
 //    }
 //
+//    COVERED
 //    @Override
 //    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
 //        auth.authenticationProvider(samlAuthenticationProvider());

@@ -32,7 +32,7 @@ import java.util.List;
 
 import static com.example.dsl.MetadataGeneratorBuilder.extendedMetadata;
 
-public class BarConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFilterChain, HttpSecurity> {
+public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFilterChain, HttpSecurity> {
     private ObjectPostProcessor<Object> objectPostProcessor = new ObjectPostProcessor<Object>() {
         public <T> T postProcess(T object) {
             throw new IllegalStateException(
@@ -48,15 +48,11 @@ public class BarConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFilt
             .addFilterAfter(samlFilter(), BasicAuthenticationFilter.class);
     }
 
-    private WebSSOProfileOptions defaultWebSSOProfileOptions() {
-        WebSSOProfileOptions webSSOProfileOptions = new WebSSOProfileOptions();
-        webSSOProfileOptions.setIncludeScoping(false);
-        return webSSOProfileOptions;
-    }
-
     private SAMLEntryPoint samlEntryPoint() {
         SAMLEntryPoint samlEntryPoint = new SAMLEntryPoint();
-        samlEntryPoint.setDefaultProfileOptions(defaultWebSSOProfileOptions());
+        WebSSOProfileOptions webSSOProfileOptions = new WebSSOProfileOptions();
+        webSSOProfileOptions.setIncludeScoping(false);
+        samlEntryPoint.setDefaultProfileOptions(webSSOProfileOptions);
         return samlEntryPoint;
     }
 
