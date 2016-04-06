@@ -43,15 +43,16 @@ public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 
     @Override
     public void configure(HttpSecurity http) throws Exception {
-        http
-            .addFilterBefore(metadataGeneratorFilter(), ChannelProcessingFilter.class)
-            .addFilterAfter(samlFilter(), BasicAuthenticationFilter.class);
-    }
-
-    private SAMLEntryPoint samlEntryPoint() {
-        SAMLEntryPoint samlEntryPoint = new SAMLEntryPoint();
         WebSSOProfileOptions webSSOProfileOptions = new WebSSOProfileOptions();
         webSSOProfileOptions.setIncludeScoping(false);
+
+        http
+            .addFilterBefore(metadataGeneratorFilter(webSSOProfileOptions), ChannelProcessingFilter.class)
+            .addFilterAfter(samlFilter(webSSOProfileOptions), BasicAuthenticationFilter.class);
+    }
+
+    private SAMLEntryPoint samlEntryPoint(WebSSOProfileOptions webSSOProfileOptions) {
+        SAMLEntryPoint samlEntryPoint = new SAMLEntryPoint();
         samlEntryPoint.setDefaultProfileOptions(webSSOProfileOptions);
         return samlEntryPoint;
     }
@@ -64,7 +65,7 @@ public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
         return samlWebSSOProcessingFilter;
     }
 
-    private MetadataGeneratorFilter metadataGeneratorFilter() throws IOException, MetadataProviderException {
+    private MetadataGeneratorFilter metadataGeneratorFilter(WebSSOProfileOptions webSSOProfileOptions) throws IOException, MetadataProviderException {
         DefaultResourceLoader loader = new DefaultResourceLoader();
         Resource storeFile = loader.getResource("classpath:/saml/colombia-metadata.xml");
 
@@ -80,15 +81,15 @@ public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
         providers.add(extendedMetadataDelegate);
         CachingMetadataManager cachingMetadataManager = new CachingMetadataManager(providers);
 
-        MetadataGeneratorFilter metadataGeneratorFilter = new MetadataGeneratorFilter(MetadataGeneratorBuilder.build());
+        MetadataGeneratorFilter metadataGeneratorFilter = new MetadataGeneratorFilter(MetadataGeneratorBuilder.build(webSSOProfileOptions));
         metadataGeneratorFilter.setManager(cachingMetadataManager);
         return metadataGeneratorFilter;
     }
 
-    private FilterChainProxy samlFilter() throws Exception {
+    private FilterChainProxy samlFilter(WebSSOProfileOptions webSSOProfileOptions) throws Exception {
         List<SecurityFilterChain> chains = new ArrayList<>();
         chains.add(new DefaultSecurityFilterChain(new AntPathRequestMatcher("/saml/login/**"),
-            samlEntryPoint()));
+            samlEntryPoint(webSSOProfileOptions)));
         chains.add(new DefaultSecurityFilterChain(new AntPathRequestMatcher("/saml/metadata/**"),
             new MetadataDisplayFilter()));
         chains.add(new DefaultSecurityFilterChain(new AntPathRequestMatcher("/saml/SSO/**"),

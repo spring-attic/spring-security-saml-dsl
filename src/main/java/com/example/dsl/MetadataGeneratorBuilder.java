@@ -20,13 +20,13 @@ public class MetadataGeneratorBuilder {
         return extendedMetadata;
     }
 
-    public static MetadataGenerator build() {
+    public static MetadataGenerator build(WebSSOProfileOptions webSSOProfileOptions) {
         MetadataGenerator metadataGenerator = new MetadataGenerator();
 
 //        metadataGenerator.setSamlWebSSOFilter();
 //        metadataGenerator.setSamlWebSSOHoKFilter();
 //        metadataGenerator.setSamlLogoutProcessingFilter();
-        metadataGenerator.setSamlEntryPoint(getSamlEntryPoint());
+        metadataGenerator.setSamlEntryPoint(getSamlEntryPoint(webSSOProfileOptions));
 //        metadataGenerator.setRequestSigned();
 //        metadataGenerator.setWantAssertionSigned();
 //        metadataGenerator.setNameID();
@@ -44,9 +44,7 @@ public class MetadataGeneratorBuilder {
         return metadataGenerator;
     }
 
-    private static SAMLEntryPoint getSamlEntryPoint() {
-        WebSSOProfileOptions webSSOProfileOptions = new WebSSOProfileOptions();
-        webSSOProfileOptions.setIncludeScoping(false);
+    private static SAMLEntryPoint getSamlEntryPoint(WebSSOProfileOptions webSSOProfileOptions) {
         SAMLEntryPoint samlEntryPoint = new SAMLEntryPoint();
         samlEntryPoint.setDefaultProfileOptions(webSSOProfileOptions);
         return samlEntryPoint;
