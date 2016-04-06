@@ -13,10 +13,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.saml.SAMLDiscovery;
 import org.springframework.security.saml.SAMLEntryPoint;
 import org.springframework.security.saml.SAMLProcessingFilter;
-import org.springframework.security.saml.metadata.CachingMetadataManager;
-import org.springframework.security.saml.metadata.ExtendedMetadataDelegate;
-import org.springframework.security.saml.metadata.MetadataDisplayFilter;
-import org.springframework.security.saml.metadata.MetadataGeneratorFilter;
+import org.springframework.security.saml.metadata.*;
 import org.springframework.security.saml.websso.WebSSOProfileOptions;
 import org.springframework.security.web.DefaultSecurityFilterChain;
 import org.springframework.security.web.FilterChainProxy;
@@ -29,8 +26,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-
-import static com.example.dsl.MetadataGeneratorBuilder.extendedMetadata;
 
 public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFilterChain, HttpSecurity> {
     private ObjectPostProcessor<Object> objectPostProcessor = new ObjectPostProcessor<Object>() {
@@ -46,8 +41,12 @@ public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
         WebSSOProfileOptions webSSOProfileOptions = new WebSSOProfileOptions();
         webSSOProfileOptions.setIncludeScoping(false);
 
+        ExtendedMetadata extendedMetadata = new ExtendedMetadata();
+        extendedMetadata.setIdpDiscoveryEnabled(true);
+        extendedMetadata.setSignMetadata(true);
+
         http
-            .addFilterBefore(metadataGeneratorFilter(webSSOProfileOptions), ChannelProcessingFilter.class)
+            .addFilterBefore(metadataGeneratorFilter(webSSOProfileOptions, extendedMetadata), ChannelProcessingFilter.class)
             .addFilterAfter(samlFilter(webSSOProfileOptions), BasicAuthenticationFilter.class);
     }
 
@@ -65,7 +64,7 @@ public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
         return samlWebSSOProcessingFilter;
     }
 
-    private MetadataGeneratorFilter metadataGeneratorFilter(WebSSOProfileOptions webSSOProfileOptions) throws IOException, MetadataProviderException {
+    private MetadataGeneratorFilter metadataGeneratorFilter(WebSSOProfileOptions webSSOProfileOptions, ExtendedMetadata extendedMetadata) throws IOException, MetadataProviderException {
         DefaultResourceLoader loader = new DefaultResourceLoader();
         Resource storeFile = loader.getResource("classpath:/saml/colombia-metadata.xml");
 
@@ -73,7 +72,7 @@ public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
         FilesystemMetadataProvider filesystemMetadataProvider = new FilesystemMetadataProvider(oktaMetadata);
         filesystemMetadataProvider.setParserPool(new StaticBasicParserPool());
 
-        ExtendedMetadataDelegate extendedMetadataDelegate = new ExtendedMetadataDelegate(filesystemMetadataProvider, extendedMetadata());
+        ExtendedMetadataDelegate extendedMetadataDelegate = new ExtendedMetadataDelegate(filesystemMetadataProvider, extendedMetadata);
         extendedMetadataDelegate.setMetadataTrustCheck(false);
         extendedMetadataDelegate.setMetadataRequireSignature(false);
 
@@ -81,7 +80,7 @@ public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
         providers.add(extendedMetadataDelegate);
         CachingMetadataManager cachingMetadataManager = new CachingMetadataManager(providers);
 
-        MetadataGeneratorFilter metadataGeneratorFilter = new MetadataGeneratorFilter(MetadataGeneratorBuilder.build(webSSOProfileOptions));
+        MetadataGeneratorFilter metadataGeneratorFilter = new MetadataGeneratorFilter(MetadataGeneratorBuilder.build(webSSOProfileOptions, extendedMetadata));
         metadataGeneratorFilter.setManager(cachingMetadataManager);
         return metadataGeneratorFilter;
     }

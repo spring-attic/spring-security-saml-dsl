@@ -13,14 +13,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class MetadataGeneratorBuilder {
-    public static ExtendedMetadata extendedMetadata() {
-        ExtendedMetadata extendedMetadata = new ExtendedMetadata();
-        extendedMetadata.setIdpDiscoveryEnabled(true);
-        extendedMetadata.setSignMetadata(true);
-        return extendedMetadata;
-    }
-
-    public static MetadataGenerator build(WebSSOProfileOptions webSSOProfileOptions) {
+    public static MetadataGenerator build(WebSSOProfileOptions webSSOProfileOptions, ExtendedMetadata extendedMetadata) {
         MetadataGenerator metadataGenerator = new MetadataGenerator();
 
 //        metadataGenerator.setSamlWebSSOFilter();
@@ -39,7 +32,7 @@ public class MetadataGeneratorBuilder {
 //        metadataGenerator.setBindingsHoKSSO();
         metadataGenerator.setIncludeDiscoveryExtension(false);
 //        metadataGenerator.setAssertionConsumerIndex();
-        metadataGenerator.setExtendedMetadata(extendedMetadata());
+        metadataGenerator.setExtendedMetadata(extendedMetadata);
 
         return metadataGenerator;
     }
