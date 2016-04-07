@@ -64,8 +64,8 @@ public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
         samlAuthenticationProvider.setForcePrincipalAsString(false);
 
         AuthenticationManagerBuilder authenticationManagerBuilder = new AuthenticationManagerBuilder(objectPostProcessor);
-        samlWebSSOProcessingFilter.setAuthenticationManager(authenticationManagerBuilder.build());
         authenticationManagerBuilder.authenticationProvider(samlAuthenticationProvider);
+        samlWebSSOProcessingFilter.setAuthenticationManager(authenticationManagerBuilder.build());
         return samlWebSSOProcessingFilter;
     }
 
