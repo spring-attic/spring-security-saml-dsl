@@ -31,9 +31,7 @@ import java.util.List;
 public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFilterChain, HttpSecurity> {
     private ObjectPostProcessor<Object> objectPostProcessor = new ObjectPostProcessor<Object>() {
         public <T> T postProcess(T object) {
-            throw new IllegalStateException(
-                ObjectPostProcessor.class.getName()
-                    + " is a required bean. Ensure you have used @EnableWebSecurity and @Configuration");
+            return object;
         }
     };
 
