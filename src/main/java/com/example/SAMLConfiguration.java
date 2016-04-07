@@ -50,7 +50,7 @@
 //    @Lazy
 //    private MetadataGenerator metadataGenerator;
 //
-//    COVERED
+//    ?????
 //    @Bean
 //    public static SAMLBootstrap sAMLBootstrap() {
 //        return new SAMLBootstrap();
@@ -86,7 +86,7 @@
 //        return new HttpClient(multiThreadedHttpConnectionManager());
 //    }
 //
-//    ?????
+//    COVERED
 //    @Bean
 //    public SAMLAuthenticationProvider samlAuthenticationProvider() {
 //        SAMLAuthenticationProvider samlAuthenticationProvider = new SAMLAuthenticationProvider();

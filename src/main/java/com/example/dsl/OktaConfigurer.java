@@ -10,6 +10,7 @@ import org.springframework.security.config.annotation.ObjectPostProcessor;
 import org.springframework.security.config.annotation.SecurityConfigurerAdapter;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.saml.SAMLAuthenticationProvider;
 import org.springframework.security.saml.SAMLDiscovery;
 import org.springframework.security.saml.SAMLEntryPoint;
 import org.springframework.security.saml.SAMLProcessingFilter;
@@ -59,8 +60,12 @@ public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
     private SAMLProcessingFilter samlWebSSOProcessingFilter() throws Exception {
         SAMLProcessingFilter samlWebSSOProcessingFilter = new SAMLProcessingFilter();
 
+        SAMLAuthenticationProvider samlAuthenticationProvider = new SAMLAuthenticationProvider();
+        samlAuthenticationProvider.setForcePrincipalAsString(false);
+
         AuthenticationManagerBuilder authenticationManagerBuilder = new AuthenticationManagerBuilder(objectPostProcessor);
         samlWebSSOProcessingFilter.setAuthenticationManager(authenticationManagerBuilder.build());
+        authenticationManagerBuilder.authenticationProvider(samlAuthenticationProvider);
         return samlWebSSOProcessingFilter;
     }
 

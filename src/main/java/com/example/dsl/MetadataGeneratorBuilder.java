@@ -7,6 +7,7 @@ import org.springframework.security.saml.key.JKSKeyManager;
 import org.springframework.security.saml.key.KeyManager;
 import org.springframework.security.saml.metadata.ExtendedMetadata;
 import org.springframework.security.saml.metadata.MetadataGenerator;
+import org.springframework.security.saml.websso.WebSSOProfileConsumerHoKImpl;
 import org.springframework.security.saml.websso.WebSSOProfileOptions;
 
 import java.util.HashMap;
@@ -19,7 +20,7 @@ public class MetadataGeneratorBuilder {
 //        metadataGenerator.setSamlWebSSOFilter();
 //        metadataGenerator.setSamlWebSSOHoKFilter();
 //        metadataGenerator.setSamlLogoutProcessingFilter();
-        metadataGenerator.setSamlEntryPoint(getSamlEntryPoint(webSSOProfileOptions));
+        metadataGenerator.setSamlEntryPoint(samlEntryPoint(webSSOProfileOptions));
 //        metadataGenerator.setRequestSigned();
 //        metadataGenerator.setWantAssertionSigned();
 //        metadataGenerator.setNameID();
@@ -37,7 +38,7 @@ public class MetadataGeneratorBuilder {
         return metadataGenerator;
     }
 
-    private static SAMLEntryPoint getSamlEntryPoint(WebSSOProfileOptions webSSOProfileOptions) {
+    private static SAMLEntryPoint samlEntryPoint(WebSSOProfileOptions webSSOProfileOptions) {
         SAMLEntryPoint samlEntryPoint = new SAMLEntryPoint();
         samlEntryPoint.setDefaultProfileOptions(webSSOProfileOptions);
         return samlEntryPoint;
