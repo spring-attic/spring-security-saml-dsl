@@ -1,20 +1,39 @@
 package com.example.dsl;
 
+import org.opensaml.Configuration;
+import org.opensaml.PaosBootstrap;
 import org.opensaml.saml2.metadata.provider.FilesystemMetadataProvider;
 import org.opensaml.saml2.metadata.provider.MetadataProvider;
 import org.opensaml.saml2.metadata.provider.MetadataProviderException;
+import org.opensaml.xml.ConfigurationException;
+import org.opensaml.xml.parse.ParserPool;
 import org.opensaml.xml.parse.StaticBasicParserPool;
+import org.opensaml.xml.parse.XMLParserException;
+import org.opensaml.xml.security.keyinfo.NamedKeyInfoGeneratorManager;
+import org.opensaml.xml.security.x509.CertPathPKIXTrustEvaluator;
+import org.opensaml.xml.security.x509.PKIXTrustEvaluator;
+import org.opensaml.xml.security.x509.X509KeyInfoGeneratorFactory;
 import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.core.io.Resource;
 import org.springframework.security.config.annotation.ObjectPostProcessor;
 import org.springframework.security.config.annotation.SecurityConfigurerAdapter;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.saml.SAMLAuthenticationProvider;
-import org.springframework.security.saml.SAMLDiscovery;
-import org.springframework.security.saml.SAMLEntryPoint;
-import org.springframework.security.saml.SAMLProcessingFilter;
+import org.springframework.security.saml.*;
+import org.springframework.security.saml.context.SAMLContextProvider;
+import org.springframework.security.saml.context.SAMLContextProviderLB;
+import org.springframework.security.saml.key.JKSKeyManager;
+import org.springframework.security.saml.key.KeyManager;
+import org.springframework.security.saml.log.SAMLDefaultLogger;
+import org.springframework.security.saml.log.SAMLLogger;
 import org.springframework.security.saml.metadata.*;
+import org.springframework.security.saml.processor.*;
+import org.springframework.security.saml.trust.MetadataCredentialResolver;
+import org.springframework.security.saml.trust.PKIXInformationResolver;
+import org.springframework.security.saml.util.VelocityFactory;
+import org.springframework.security.saml.websso.WebSSOProfile;
+import org.springframework.security.saml.websso.WebSSOProfileConsumerImpl;
+import org.springframework.security.saml.websso.WebSSOProfileImpl;
 import org.springframework.security.saml.websso.WebSSOProfileOptions;
 import org.springframework.security.web.DefaultSecurityFilterChain;
 import org.springframework.security.web.FilterChainProxy;
@@ -25,8 +44,7 @@ import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFilterChain, HttpSecurity> {
     private ObjectPostProcessor<Object> objectPostProcessor = new ObjectPostProcessor<Object>() {
@@ -36,68 +54,200 @@ public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
     };
 
     @Override
-    public void configure(HttpSecurity http) throws Exception {
-        WebSSOProfileOptions webSSOProfileOptions = new WebSSOProfileOptions();
-        webSSOProfileOptions.setIncludeScoping(false);
+    public void init(HttpSecurity http) throws Exception {
+        WebSSOProfileOptions webSSOProfileOptions = webSSOProfileOptions();
 
-        ExtendedMetadata extendedMetadata = new ExtendedMetadata();
-        extendedMetadata.setIdpDiscoveryEnabled(true);
-        extendedMetadata.setSignMetadata(true);
+        ExtendedMetadata extendedMetadata = extendedMetadata();
+
+        StaticBasicParserPool parserPool = staticBasicParserPool();
+
+        FilesystemMetadataProvider filesystemMetadataProvider = fileSystemMetadataProvider(parserPool);
+
+        ExtendedMetadataDelegate extendedMetadataDelegate = extendedMetadataDelegate(extendedMetadata, filesystemMetadataProvider);
+
+        KeyManager keyManager = keyManager();
+
+        CachingMetadataManager cachingMetadataManager = cachingMetadataManager(extendedMetadataDelegate, keyManager);
+
+        SAMLProcessor samlProcessor = samlProcessor(parserPool);
+
+        WebSSOProfile webSSOProfile = new WebSSOProfileImpl(samlProcessor, cachingMetadataManager);
+
+        SAMLDefaultLogger samlLogger = new SAMLDefaultLogger();
+
+        SAMLAuthenticationProvider samlAuthenticationProvider = samlAuthenticationProvider(samlLogger);
+
+        http.authenticationProvider(samlAuthenticationProvider);
+
+        bootstrap();
+
+        SAMLContextProvider contextProvider = contextProvider(cachingMetadataManager, keyManager);
+
+        SAMLEntryPoint samlEntryPoint = samlEntryPoint(webSSOProfileOptions, cachingMetadataManager, webSSOProfile, samlLogger, contextProvider);
+
+//        http.httpBasic().authenticationEntryPoint(samlEntryPoint);
 
         http
-            .addFilterBefore(metadataGeneratorFilter(webSSOProfileOptions, extendedMetadata), ChannelProcessingFilter.class)
-            .addFilterAfter(samlFilter(webSSOProfileOptions), BasicAuthenticationFilter.class);
+                .addFilterBefore(metadataGeneratorFilter(samlEntryPoint, extendedMetadata, cachingMetadataManager, keyManager), ChannelProcessingFilter.class)
+                .addFilterAfter(samlFilter(samlEntryPoint, samlAuthenticationProvider, contextProvider, cachingMetadataManager, samlProcessor), BasicAuthenticationFilter.class);
+
+
     }
 
-    private SAMLEntryPoint samlEntryPoint(WebSSOProfileOptions webSSOProfileOptions) {
-        SAMLEntryPoint samlEntryPoint = new SAMLEntryPoint();
-        samlEntryPoint.setDefaultProfileOptions(webSSOProfileOptions);
+    private SAMLEntryPoint samlEntryPoint(WebSSOProfileOptions webSSOProfileOptions, CachingMetadataManager cachingMetadataManager, WebSSOProfile webSSOProfile, SAMLDefaultLogger samlLogger, SAMLContextProvider contextProvider) {
+        SAMLEntryPoint samlEntryPoint = samlEntryPoint(webSSOProfileOptions, webSSOProfile, contextProvider, cachingMetadataManager);
+        samlEntryPoint.setMetadata(cachingMetadataManager);
+        samlEntryPoint.setSamlLogger(samlLogger);
         return samlEntryPoint;
     }
 
-    private SAMLProcessingFilter samlWebSSOProcessingFilter() throws Exception {
-        SAMLProcessingFilter samlWebSSOProcessingFilter = new SAMLProcessingFilter();
-
-        SAMLAuthenticationProvider samlAuthenticationProvider = new SAMLAuthenticationProvider();
-        samlAuthenticationProvider.setForcePrincipalAsString(false);
-
-        AuthenticationManagerBuilder authenticationManagerBuilder = new AuthenticationManagerBuilder(objectPostProcessor);
-        authenticationManagerBuilder.authenticationProvider(samlAuthenticationProvider);
-        samlWebSSOProcessingFilter.setAuthenticationManager(authenticationManagerBuilder.build());
-        return samlWebSSOProcessingFilter;
+    private SAMLProcessor samlProcessor(StaticBasicParserPool parserPool) {
+        Collection<SAMLBinding> bindings = new ArrayList<>();
+        bindings.add(httpRedirectDeflateBinding(parserPool));
+        bindings.add(httpPostBinding(parserPool));
+        return new SAMLProcessorImpl(bindings);
     }
 
-    private MetadataGeneratorFilter metadataGeneratorFilter(WebSSOProfileOptions webSSOProfileOptions, ExtendedMetadata extendedMetadata) throws IOException, MetadataProviderException {
+    private CachingMetadataManager cachingMetadataManager(ExtendedMetadataDelegate extendedMetadataDelegate, KeyManager keyManager) throws MetadataProviderException {
+        List<MetadataProvider> providers = new ArrayList<>();
+        providers.add(extendedMetadataDelegate);
+        CachingMetadataManager cachingMetadataManager = new CachingMetadataManager(providers);
+        cachingMetadataManager.setKeyManager(keyManager);
+        return cachingMetadataManager;
+    }
+
+    private StaticBasicParserPool staticBasicParserPool() throws XMLParserException {
+        StaticBasicParserPool parserPool = new StaticBasicParserPool();
+        parserPool.initialize();
+        return parserPool;
+    }
+
+    private ExtendedMetadataDelegate extendedMetadataDelegate(ExtendedMetadata extendedMetadata, FilesystemMetadataProvider filesystemMetadataProvider) {
+        ExtendedMetadataDelegate extendedMetadataDelegate = new ExtendedMetadataDelegate(filesystemMetadataProvider, extendedMetadata);
+        extendedMetadataDelegate.setMetadataTrustCheck(false);
+        extendedMetadataDelegate.setMetadataRequireSignature(false);
+        return extendedMetadataDelegate;
+    }
+
+    private FilesystemMetadataProvider fileSystemMetadataProvider(ParserPool parserPool) throws IOException, MetadataProviderException {
         DefaultResourceLoader loader = new DefaultResourceLoader();
         Resource storeFile = loader.getResource("classpath:/saml/colombia-metadata.xml");
 
         File oktaMetadata = storeFile.getFile();
         FilesystemMetadataProvider filesystemMetadataProvider = new FilesystemMetadataProvider(oktaMetadata);
-        filesystemMetadataProvider.setParserPool(new StaticBasicParserPool());
+        filesystemMetadataProvider.setParserPool(parserPool);
 
-        ExtendedMetadataDelegate extendedMetadataDelegate = new ExtendedMetadataDelegate(filesystemMetadataProvider, extendedMetadata);
-        extendedMetadataDelegate.setMetadataTrustCheck(false);
-        extendedMetadataDelegate.setMetadataRequireSignature(false);
+        return filesystemMetadataProvider;
+    }
 
-        List<MetadataProvider> providers = new ArrayList<>();
-        providers.add(extendedMetadataDelegate);
-        CachingMetadataManager cachingMetadataManager = new CachingMetadataManager(providers);
+    private ExtendedMetadata extendedMetadata() {
+        ExtendedMetadata extendedMetadata = new ExtendedMetadata();
+        extendedMetadata.setIdpDiscoveryEnabled(true);
+        extendedMetadata.setSignMetadata(true);
+        return extendedMetadata;
+    }
 
-        MetadataGeneratorFilter metadataGeneratorFilter = new MetadataGeneratorFilter(MetadataGeneratorBuilder.build(webSSOProfileOptions, extendedMetadata));
+    private WebSSOProfileOptions webSSOProfileOptions() {
+        WebSSOProfileOptions webSSOProfileOptions = new WebSSOProfileOptions();
+        webSSOProfileOptions.setIncludeScoping(false);
+        return webSSOProfileOptions;
+    }
+
+    private void bootstrap() throws ConfigurationException {
+        PaosBootstrap.bootstrap();
+
+        NamedKeyInfoGeneratorManager manager = Configuration.getGlobalSecurityConfiguration().getKeyInfoGeneratorManager();
+        X509KeyInfoGeneratorFactory generator = new X509KeyInfoGeneratorFactory();
+        generator.setEmitEntityCertificate(true);
+        generator.setEmitEntityCertificateChain(true);
+        manager.registerFactory(SAMLConstants.SAML_METADATA_KEY_INFO_GENERATOR, generator);
+    }
+
+    private HTTPPostBinding httpPostBinding(ParserPool parserPool) {
+        return new HTTPPostBinding(parserPool, VelocityFactory.getEngine());
+    }
+
+    private HTTPRedirectDeflateBinding httpRedirectDeflateBinding(ParserPool parserPool) {
+        return new HTTPRedirectDeflateBinding(parserPool);
+    }
+
+    private SAMLEntryPoint samlEntryPoint(WebSSOProfileOptions webSSOProfileOptions, WebSSOProfile webSSOProfile, SAMLContextProvider contextProvider, MetadataManager cachingMetadataManager) {
+        SAMLEntryPoint samlEntryPoint = new SAMLEntryPoint();
+        samlEntryPoint.setDefaultProfileOptions(webSSOProfileOptions);
+
+        samlEntryPoint.setWebSSOprofile(webSSOProfile);
+        samlEntryPoint.setContextProvider(contextProvider);
+//        samlEntryPoint.setMetadata(cachingMetadataManager);
+        return samlEntryPoint;
+    }
+
+    private SAMLProcessingFilter samlWebSSOProcessingFilter(SAMLAuthenticationProvider samlAuthenticationProvider, SAMLContextProvider contextProvider, SAMLProcessor samlProcessor) throws Exception {
+        SAMLProcessingFilter samlWebSSOProcessingFilter = new SAMLProcessingFilter();
+
+        AuthenticationManagerBuilder authenticationManagerBuilder = new AuthenticationManagerBuilder(objectPostProcessor);
+        authenticationManagerBuilder.authenticationProvider(samlAuthenticationProvider);
+        samlWebSSOProcessingFilter.setAuthenticationManager(authenticationManagerBuilder.build());
+        samlWebSSOProcessingFilter.setContextProvider(contextProvider);
+        samlWebSSOProcessingFilter.setSAMLProcessor(samlProcessor);
+        return samlWebSSOProcessingFilter;
+    }
+
+    private MetadataGeneratorFilter metadataGeneratorFilter(SAMLEntryPoint samlEntryPoint, ExtendedMetadata extendedMetadata, MetadataManager cachingMetadataManager, KeyManager keyManager) throws IOException, MetadataProviderException, XMLParserException {
+
+        MetadataGeneratorFilter metadataGeneratorFilter = new MetadataGeneratorFilter(MetadataGeneratorBuilder.build(samlEntryPoint, extendedMetadata, keyManager));
         metadataGeneratorFilter.setManager(cachingMetadataManager);
         return metadataGeneratorFilter;
     }
 
-    private FilterChainProxy samlFilter(WebSSOProfileOptions webSSOProfileOptions) throws Exception {
+    private FilterChainProxy samlFilter(SAMLEntryPoint samlEntryPoint, SAMLAuthenticationProvider samlAuthenticationProvider, SAMLContextProvider contextProvider, MetadataManager cachingMetadataManager, SAMLProcessor samlProcessor) throws Exception {
         List<SecurityFilterChain> chains = new ArrayList<>();
         chains.add(new DefaultSecurityFilterChain(new AntPathRequestMatcher("/saml/login/**"),
-            samlEntryPoint(webSSOProfileOptions)));
+                samlEntryPoint));
         chains.add(new DefaultSecurityFilterChain(new AntPathRequestMatcher("/saml/metadata/**"),
-            new MetadataDisplayFilter()));
+                new MetadataDisplayFilter()));
         chains.add(new DefaultSecurityFilterChain(new AntPathRequestMatcher("/saml/SSO/**"),
-            samlWebSSOProcessingFilter()));
+                samlWebSSOProcessingFilter(samlAuthenticationProvider, contextProvider, samlProcessor)));
+        SAMLDiscovery samlDiscovery = new SAMLDiscovery();
+        samlDiscovery.setMetadata(cachingMetadataManager);
+        samlDiscovery.setContextProvider(contextProvider);
         chains.add(new DefaultSecurityFilterChain(new AntPathRequestMatcher("/saml/discovery/**"),
-            new SAMLDiscovery()));
+                samlDiscovery));
         return new FilterChainProxy(chains);
+    }
+
+    private static KeyManager keyManager() {
+        DefaultResourceLoader loader = new DefaultResourceLoader();
+        Resource storeFile = loader.getResource("classpath:/saml/colombia.jks");
+        Map<String, String> passwords = new HashMap<>();
+        passwords.put("colombia", "colombia-password");
+        String defaultKey = "colombia";
+        return new JKSKeyManager(storeFile, "colombia-password", passwords, defaultKey);
+    }
+
+    private SAMLAuthenticationProvider samlAuthenticationProvider(SAMLLogger samlLogger) {
+        SAMLAuthenticationProvider samlAuthenticationProvider = new SAMLAuthenticationProvider();
+        samlAuthenticationProvider.setForcePrincipalAsString(false);
+        samlAuthenticationProvider.setSamlLogger(samlLogger);
+        samlAuthenticationProvider.setConsumer(new WebSSOProfileConsumerImpl());
+        return samlAuthenticationProvider;
+    }
+
+    private SAMLContextProvider contextProvider(MetadataManager metadataManager, KeyManager keyManager) {
+        SAMLContextProviderLB contextProvider = new SAMLContextProviderLB();
+        contextProvider.setMetadata(metadataManager);
+        contextProvider.setScheme("https");
+        contextProvider.setServerName("localhost:8443");
+        contextProvider.setContextPath("/");
+        contextProvider.setKeyManager(keyManager);
+
+        MetadataCredentialResolver resolver = new MetadataCredentialResolver(metadataManager, keyManager);
+        PKIXTrustEvaluator pkixTrustEvaluator = new CertPathPKIXTrustEvaluator();
+        PKIXInformationResolver pkixInformationResolver = new PKIXInformationResolver(resolver, metadataManager, keyManager);
+
+        contextProvider.setPkixResolver(pkixInformationResolver);
+        contextProvider.setPkixTrustEvaluator(pkixTrustEvaluator);
+        contextProvider.setMetadataResolver(resolver);
+
+        return contextProvider;
     }
 }

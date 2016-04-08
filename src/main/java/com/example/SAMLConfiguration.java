@@ -56,7 +56,7 @@
 //        return new SAMLBootstrap();
 //    }
 //
-//    ?????
+//    COVERED
 //    @Bean
 //    public VelocityEngine velocityEngine() {
 //        return VelocityFactory.getEngine();
@@ -94,7 +94,7 @@
 //        return samlAuthenticationProvider;
 //    }
 //
-//    ?????
+//    COVERED
 //    @Bean
 //    public WebSSOProfileConsumer webSSOprofileConsumer() {
 //        return new WebSSOProfileConsumerImpl();
@@ -106,7 +106,7 @@
 //        return new WebSSOProfileConsumerHoKImpl();
 //    }
 //
-//    ?????
+//    COVERED
 //    @Bean
 //    public WebSSOProfile webSSOprofile() {
 //        return new WebSSOProfileImpl();
@@ -196,19 +196,19 @@
 //        return successLogoutHandler;
 //    }
 //
-//    ?????
+//    COVERED
 //    @Bean
 //    public HTTPPostBinding httpPostBinding() {
 //        return new HTTPPostBinding(parserPool(), velocityEngine());
 //    }
 //
-//    ?????
+//    COVERED
 //    @Bean
 //    public HTTPRedirectDeflateBinding httpRedirectDeflateBinding() {
 //        return new HTTPRedirectDeflateBinding(parserPool());
 //    }
 //
-//    ?????
+//    COVERED
 //    @Bean
 //    public SAMLProcessorImpl processor() {
 //        Collection<SAMLBinding> bindings = new ArrayList<>();
@@ -232,7 +232,7 @@
 //        return new FilterChainProxy(chains);
 //    }
 //
-//    ?????
+//    COVERED
 //    @Bean
 //    public SAMLLogger samlLogger() {
 //        SAMLDefaultLogger samlDefaultLogger = new SAMLDefaultLogger();

@@ -5,3 +5,7 @@ server:
     key-alias: colombia
     key-store: src/main/resources/saml/colombia.jks
     key-store-password: colombia-password
+
+logging:
+  level:
+    org.springframework.security: DEBUG

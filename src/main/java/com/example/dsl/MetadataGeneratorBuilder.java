@@ -1,31 +1,24 @@
 package com.example.dsl;
 
-import org.springframework.core.io.DefaultResourceLoader;
-import org.springframework.core.io.Resource;
 import org.springframework.security.saml.SAMLEntryPoint;
-import org.springframework.security.saml.key.JKSKeyManager;
 import org.springframework.security.saml.key.KeyManager;
 import org.springframework.security.saml.metadata.ExtendedMetadata;
 import org.springframework.security.saml.metadata.MetadataGenerator;
-import org.springframework.security.saml.websso.WebSSOProfileConsumerHoKImpl;
 import org.springframework.security.saml.websso.WebSSOProfileOptions;
 
-import java.util.HashMap;
-import java.util.Map;
-
 public class MetadataGeneratorBuilder {
-    public static MetadataGenerator build(WebSSOProfileOptions webSSOProfileOptions, ExtendedMetadata extendedMetadata) {
+    public static MetadataGenerator build(SAMLEntryPoint samlEntryPoint, ExtendedMetadata extendedMetadata, KeyManager keyManager) {
         MetadataGenerator metadataGenerator = new MetadataGenerator();
 
 //        metadataGenerator.setSamlWebSSOFilter();
 //        metadataGenerator.setSamlWebSSOHoKFilter();
 //        metadataGenerator.setSamlLogoutProcessingFilter();
-        metadataGenerator.setSamlEntryPoint(samlEntryPoint(webSSOProfileOptions));
+        metadataGenerator.setSamlEntryPoint(samlEntryPoint);
 //        metadataGenerator.setRequestSigned();
 //        metadataGenerator.setWantAssertionSigned();
 //        metadataGenerator.setNameID();
         metadataGenerator.setEntityBaseURL("https://localhost:8443");
-        metadataGenerator.setKeyManager(keyManager());
+        metadataGenerator.setKeyManager(keyManager);
 //        metadataGenerator.setId();
         metadataGenerator.setEntityId("com:example");
 //        metadataGenerator.setBindingsSSO();
@@ -36,20 +29,5 @@ public class MetadataGeneratorBuilder {
         metadataGenerator.setExtendedMetadata(extendedMetadata);
 
         return metadataGenerator;
-    }
-
-    private static SAMLEntryPoint samlEntryPoint(WebSSOProfileOptions webSSOProfileOptions) {
-        SAMLEntryPoint samlEntryPoint = new SAMLEntryPoint();
-        samlEntryPoint.setDefaultProfileOptions(webSSOProfileOptions);
-        return samlEntryPoint;
-    }
-
-    private static KeyManager keyManager() {
-        DefaultResourceLoader loader = new DefaultResourceLoader();
-        Resource storeFile = loader.getResource("classpath:/saml/colombia.jks");
-        Map<String, String> passwords = new HashMap<>();
-        passwords.put("colombia", "colombia-password");
-        String defaultKey = "colombia";
-        return new JKSKeyManager(storeFile, "colombia-password", passwords, defaultKey);
     }
 }
