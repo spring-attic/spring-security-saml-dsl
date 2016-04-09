@@ -44,7 +44,7 @@
 //        return metadataGenerator;
 //    }
 //
-//    ??????????????
+//    COVERED
 //    @Bean
 //    public SAMLContextProvider contextProvider() {
 //        SAMLContextProviderLB contextProvider = new SAMLContextProviderLB();
