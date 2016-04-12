@@ -85,13 +85,11 @@ public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 
         SAMLEntryPoint samlEntryPoint = samlEntryPoint(webSSOProfileOptions, cachingMetadataManager, webSSOProfile, samlLogger, contextProvider);
 
-//        http.httpBasic().authenticationEntryPoint(samlEntryPoint);
+        http.httpBasic().authenticationEntryPoint(samlEntryPoint);
 
         http
-                .addFilterBefore(metadataGeneratorFilter(samlEntryPoint, extendedMetadata, cachingMetadataManager, keyManager), ChannelProcessingFilter.class)
-                .addFilterAfter(samlFilter(samlEntryPoint, samlAuthenticationProvider, contextProvider, cachingMetadataManager, samlProcessor), BasicAuthenticationFilter.class);
-
-
+            .addFilterBefore(metadataGeneratorFilter(samlEntryPoint, extendedMetadata, cachingMetadataManager, keyManager), ChannelProcessingFilter.class)
+            .addFilterAfter(samlFilter(samlEntryPoint, samlAuthenticationProvider, contextProvider, cachingMetadataManager, samlProcessor), BasicAuthenticationFilter.class);
     }
 
     private SAMLEntryPoint samlEntryPoint(WebSSOProfileOptions webSSOProfileOptions, CachingMetadataManager cachingMetadataManager, WebSSOProfile webSSOProfile, SAMLDefaultLogger samlLogger, SAMLContextProvider contextProvider) {
@@ -177,7 +175,7 @@ public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 
         samlEntryPoint.setWebSSOprofile(webSSOProfile);
         samlEntryPoint.setContextProvider(contextProvider);
-//        samlEntryPoint.setMetadata(cachingMetadataManager);
+        samlEntryPoint.setMetadata(cachingMetadataManager);
         return samlEntryPoint;
     }
 
@@ -202,16 +200,16 @@ public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
     private FilterChainProxy samlFilter(SAMLEntryPoint samlEntryPoint, SAMLAuthenticationProvider samlAuthenticationProvider, SAMLContextProvider contextProvider, MetadataManager cachingMetadataManager, SAMLProcessor samlProcessor) throws Exception {
         List<SecurityFilterChain> chains = new ArrayList<>();
         chains.add(new DefaultSecurityFilterChain(new AntPathRequestMatcher("/saml/login/**"),
-                samlEntryPoint));
+            samlEntryPoint));
         chains.add(new DefaultSecurityFilterChain(new AntPathRequestMatcher("/saml/metadata/**"),
-                new MetadataDisplayFilter()));
+            new MetadataDisplayFilter()));
         chains.add(new DefaultSecurityFilterChain(new AntPathRequestMatcher("/saml/SSO/**"),
-                samlWebSSOProcessingFilter(samlAuthenticationProvider, contextProvider, samlProcessor)));
+            samlWebSSOProcessingFilter(samlAuthenticationProvider, contextProvider, samlProcessor)));
         SAMLDiscovery samlDiscovery = new SAMLDiscovery();
         samlDiscovery.setMetadata(cachingMetadataManager);
         samlDiscovery.setContextProvider(contextProvider);
         chains.add(new DefaultSecurityFilterChain(new AntPathRequestMatcher("/saml/discovery/**"),
-                samlDiscovery));
+            samlDiscovery));
         return new FilterChainProxy(chains);
     }
 

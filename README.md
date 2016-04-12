@@ -25,7 +25,7 @@ Okta SAML example with Spring Security
 1. Check *This is an internal app that we have created*
 1. Click *Finish*
 1. Click *View Setup Instructions*
-1. Copy the xml IDP Metadata from the Optional section into a filein your project: `src/main/resources/saml/colombia-metadata.xml`
+1. Copy the xml IDP Metadata from the Optional section into a file in your project: `src/main/resources/saml/colombia-metadata.xml`
 
 #### Assign the test application
 1. Return to your Okta home screen and click *Admin*
