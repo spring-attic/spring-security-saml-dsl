@@ -41,6 +41,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.channel.ChannelProcessingFilter;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import com.example.dsl.overrides.SAMLDslEntryPoint;
 
 import java.io.File;
 import java.io.IOException;
@@ -93,7 +94,10 @@ public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
     }
 
     private SAMLEntryPoint samlEntryPoint(WebSSOProfileOptions webSSOProfileOptions, CachingMetadataManager cachingMetadataManager, WebSSOProfile webSSOProfile, SAMLDefaultLogger samlLogger, SAMLContextProvider contextProvider) {
-        SAMLEntryPoint samlEntryPoint = samlEntryPoint(webSSOProfileOptions, webSSOProfile, contextProvider, cachingMetadataManager);
+        SAMLEntryPoint samlEntryPoint = new SAMLDslEntryPoint();
+        samlEntryPoint.setDefaultProfileOptions(webSSOProfileOptions);
+        samlEntryPoint.setWebSSOprofile(webSSOProfile);
+        samlEntryPoint.setContextProvider(contextProvider);
         samlEntryPoint.setMetadata(cachingMetadataManager);
         samlEntryPoint.setSamlLogger(samlLogger);
         return samlEntryPoint;
@@ -167,16 +171,6 @@ public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 
     private HTTPRedirectDeflateBinding httpRedirectDeflateBinding(ParserPool parserPool) {
         return new HTTPRedirectDeflateBinding(parserPool);
-    }
-
-    private SAMLEntryPoint samlEntryPoint(WebSSOProfileOptions webSSOProfileOptions, WebSSOProfile webSSOProfile, SAMLContextProvider contextProvider, MetadataManager cachingMetadataManager) {
-        SAMLEntryPoint samlEntryPoint = new SAMLEntryPoint();
-        samlEntryPoint.setDefaultProfileOptions(webSSOProfileOptions);
-
-        samlEntryPoint.setWebSSOprofile(webSSOProfile);
-        samlEntryPoint.setContextProvider(contextProvider);
-        samlEntryPoint.setMetadata(cachingMetadataManager);
-        return samlEntryPoint;
     }
 
     private SAMLProcessingFilter samlWebSSOProcessingFilter(SAMLAuthenticationProvider samlAuthenticationProvider, SAMLContextProvider contextProvider, SAMLProcessor samlProcessor) throws Exception {
