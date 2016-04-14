@@ -1,4 +1,4 @@
-package com.example.dsl.overrides;
+package com.example.dsl;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -7,7 +7,7 @@ import org.springframework.security.saml.log.SAMLLogger;
 import org.springframework.security.saml.metadata.MetadataManager;
 import org.springframework.security.saml.websso.WebSSOProfile;
 
-public class SAMLDslEntryPoint extends org.springframework.security.saml.SAMLEntryPoint{
+public class SAMLDslEntryPoint extends org.springframework.security.saml.SAMLEntryPoint {
     /**
      * Metadata manager, cannot be null, must be set.
      * It is set directly in the custom config, so can be optional here.
@@ -21,13 +21,12 @@ public class SAMLDslEntryPoint extends org.springframework.security.saml.SAMLEnt
         super.setMetadata(metadata);
     }
 
-
     /**
      * Logger for SAML events, cannot be null, must be set.
      *
      * @param samlLogger logger
-     * It is set in the custom config, so can be optional here.
-     * User could override it if desired.
+     *                   It is set in the custom config, so can be optional here.
+     *                   User could override it if desired.
      */
     @Autowired(required = false)
     @Override
@@ -61,5 +60,4 @@ public class SAMLDslEntryPoint extends org.springframework.security.saml.SAMLEnt
     public void setContextProvider(SAMLContextProvider contextProvider) {
         super.setContextProvider(contextProvider);
     }
-
 }

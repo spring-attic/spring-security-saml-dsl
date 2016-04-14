@@ -41,7 +41,6 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.channel.ChannelProcessingFilter;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
-import com.example.dsl.overrides.SAMLDslEntryPoint;
 
 import java.io.File;
 import java.io.IOException;
