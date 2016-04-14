@@ -48,6 +48,18 @@ import java.io.IOException;
 import java.util.*;
 
 public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFilterChain, HttpSecurity> {
+    private WebSSOProfileOptions webSSOProfileOptions = webSSOProfileOptions();
+    private ExtendedMetadata extendedMetadata = extendedMetadata();
+    private StaticBasicParserPool parserPool = staticBasicParserPool();
+    private FilesystemMetadataProvider filesystemMetadataProvider = fileSystemMetadataProvider(parserPool);
+    private ExtendedMetadataDelegate extendedMetadataDelegate = extendedMetadataDelegate(extendedMetadata, filesystemMetadataProvider);
+    private KeyManager keyManager = keyManager();
+    private CachingMetadataManager cachingMetadataManager = cachingMetadataManager(extendedMetadataDelegate, keyManager);
+    private SAMLProcessor samlProcessor = samlProcessor(parserPool);
+    private WebSSOProfile webSSOProfile = new WebSSOProfileImpl(samlProcessor, cachingMetadataManager);
+    private SAMLDefaultLogger samlLogger = new SAMLDefaultLogger();
+    private SAMLAuthenticationProvider samlAuthenticationProvider = samlAuthenticationProvider(samlLogger);
+
     private ObjectPostProcessor<Object> objectPostProcessor = new ObjectPostProcessor<Object>() {
         public <T> T postProcess(T object) {
             return object;
@@ -56,44 +68,21 @@ public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 
     @Override
     public void init(HttpSecurity http) throws Exception {
-        WebSSOProfileOptions webSSOProfileOptions = webSSOProfileOptions();
-
-        ExtendedMetadata extendedMetadata = extendedMetadata();
-
-        StaticBasicParserPool parserPool = staticBasicParserPool();
-
-        FilesystemMetadataProvider filesystemMetadataProvider = fileSystemMetadataProvider(parserPool);
-
-        ExtendedMetadataDelegate extendedMetadataDelegate = extendedMetadataDelegate(extendedMetadata, filesystemMetadataProvider);
-
-        KeyManager keyManager = keyManager();
-
-        CachingMetadataManager cachingMetadataManager = cachingMetadataManager(extendedMetadataDelegate, keyManager);
-
-        SAMLProcessor samlProcessor = samlProcessor(parserPool);
-
-        WebSSOProfile webSSOProfile = new WebSSOProfileImpl(samlProcessor, cachingMetadataManager);
-
-        SAMLDefaultLogger samlLogger = new SAMLDefaultLogger();
-
-        SAMLAuthenticationProvider samlAuthenticationProvider = samlAuthenticationProvider(samlLogger);
-
         http.authenticationProvider(samlAuthenticationProvider);
 
         bootstrap();
 
-        SAMLContextProvider contextProvider = contextProvider(cachingMetadataManager, keyManager);
-
-        SAMLEntryPoint samlEntryPoint = samlEntryPoint(webSSOProfileOptions, cachingMetadataManager, webSSOProfile, samlLogger, contextProvider);
+        SAMLContextProvider contextProvider = contextProvider();
+        SAMLEntryPoint samlEntryPoint = samlEntryPoint(contextProvider);
 
         http.httpBasic().authenticationEntryPoint(samlEntryPoint);
 
         http
-            .addFilterBefore(metadataGeneratorFilter(samlEntryPoint, extendedMetadata, cachingMetadataManager, keyManager), ChannelProcessingFilter.class)
-            .addFilterAfter(samlFilter(samlEntryPoint, samlAuthenticationProvider, contextProvider, cachingMetadataManager, samlProcessor), BasicAuthenticationFilter.class);
+            .addFilterBefore(metadataGeneratorFilter(samlEntryPoint), ChannelProcessingFilter.class)
+            .addFilterAfter(samlFilter(samlEntryPoint, contextProvider), BasicAuthenticationFilter.class);
     }
 
-    private SAMLEntryPoint samlEntryPoint(WebSSOProfileOptions webSSOProfileOptions, CachingMetadataManager cachingMetadataManager, WebSSOProfile webSSOProfile, SAMLDefaultLogger samlLogger, SAMLContextProvider contextProvider) {
+    private SAMLEntryPoint samlEntryPoint(SAMLContextProvider contextProvider) {
         SAMLEntryPoint samlEntryPoint = new SAMLDslEntryPoint();
         samlEntryPoint.setDefaultProfileOptions(webSSOProfileOptions);
         samlEntryPoint.setWebSSOprofile(webSSOProfile);
@@ -110,17 +99,28 @@ public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
         return new SAMLProcessorImpl(bindings);
     }
 
-    private CachingMetadataManager cachingMetadataManager(ExtendedMetadataDelegate extendedMetadataDelegate, KeyManager keyManager) throws MetadataProviderException {
+    private CachingMetadataManager cachingMetadataManager(ExtendedMetadataDelegate extendedMetadataDelegate, KeyManager keyManager) {
         List<MetadataProvider> providers = new ArrayList<>();
         providers.add(extendedMetadataDelegate);
-        CachingMetadataManager cachingMetadataManager = new CachingMetadataManager(providers);
+
+        CachingMetadataManager cachingMetadataManager = null;
+        try {
+            cachingMetadataManager = new CachingMetadataManager(providers);
+        } catch (MetadataProviderException e) {
+            e.printStackTrace();
+        }
+
         cachingMetadataManager.setKeyManager(keyManager);
         return cachingMetadataManager;
     }
 
-    private StaticBasicParserPool staticBasicParserPool() throws XMLParserException {
+    private StaticBasicParserPool staticBasicParserPool() {
         StaticBasicParserPool parserPool = new StaticBasicParserPool();
-        parserPool.initialize();
+        try {
+            parserPool.initialize();
+        } catch (XMLParserException e) {
+            e.printStackTrace();
+        }
         return parserPool;
     }
 
@@ -131,12 +131,23 @@ public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
         return extendedMetadataDelegate;
     }
 
-    private FilesystemMetadataProvider fileSystemMetadataProvider(ParserPool parserPool) throws IOException, MetadataProviderException {
+    private FilesystemMetadataProvider fileSystemMetadataProvider(ParserPool parserPool) {
         DefaultResourceLoader loader = new DefaultResourceLoader();
         Resource storeFile = loader.getResource("classpath:/saml/colombia-metadata.xml");
 
-        File oktaMetadata = storeFile.getFile();
-        FilesystemMetadataProvider filesystemMetadataProvider = new FilesystemMetadataProvider(oktaMetadata);
+        File oktaMetadata = null;
+        try {
+            oktaMetadata = storeFile.getFile();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        FilesystemMetadataProvider filesystemMetadataProvider = null;
+        try {
+            filesystemMetadataProvider = new FilesystemMetadataProvider(oktaMetadata);
+        } catch (MetadataProviderException e) {
+            e.printStackTrace();
+        }
         filesystemMetadataProvider.setParserPool(parserPool);
 
         return filesystemMetadataProvider;
@@ -184,14 +195,14 @@ public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
         return samlWebSSOProcessingFilter;
     }
 
-    private MetadataGeneratorFilter metadataGeneratorFilter(SAMLEntryPoint samlEntryPoint, ExtendedMetadata extendedMetadata, MetadataManager cachingMetadataManager, KeyManager keyManager) throws IOException, MetadataProviderException, XMLParserException {
+    private MetadataGeneratorFilter metadataGeneratorFilter(SAMLEntryPoint samlEntryPoint) throws IOException, MetadataProviderException, XMLParserException {
 
         MetadataGeneratorFilter metadataGeneratorFilter = new MetadataGeneratorFilter(MetadataGeneratorBuilder.build(samlEntryPoint, extendedMetadata, keyManager));
         metadataGeneratorFilter.setManager(cachingMetadataManager);
         return metadataGeneratorFilter;
     }
 
-    private FilterChainProxy samlFilter(SAMLEntryPoint samlEntryPoint, SAMLAuthenticationProvider samlAuthenticationProvider, SAMLContextProvider contextProvider, MetadataManager cachingMetadataManager, SAMLProcessor samlProcessor) throws Exception {
+    private FilterChainProxy samlFilter(SAMLEntryPoint samlEntryPoint, SAMLContextProvider contextProvider) throws Exception {
         List<SecurityFilterChain> chains = new ArrayList<>();
         chains.add(new DefaultSecurityFilterChain(new AntPathRequestMatcher("/saml/login/**"),
             samlEntryPoint));
@@ -224,17 +235,17 @@ public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
         return samlAuthenticationProvider;
     }
 
-    private SAMLContextProvider contextProvider(MetadataManager metadataManager, KeyManager keyManager) {
+    private SAMLContextProvider contextProvider() {
         SAMLContextProviderLB contextProvider = new SAMLContextProviderLB();
-        contextProvider.setMetadata(metadataManager);
+        contextProvider.setMetadata(cachingMetadataManager);
         contextProvider.setScheme("https");
         contextProvider.setServerName("localhost:8443");
         contextProvider.setContextPath("/");
         contextProvider.setKeyManager(keyManager);
 
-        MetadataCredentialResolver resolver = new MetadataCredentialResolver(metadataManager, keyManager);
+        MetadataCredentialResolver resolver = new MetadataCredentialResolver(cachingMetadataManager, keyManager);
         PKIXTrustEvaluator pkixTrustEvaluator = new CertPathPKIXTrustEvaluator();
-        PKIXInformationResolver pkixInformationResolver = new PKIXInformationResolver(resolver, metadataManager, keyManager);
+        PKIXInformationResolver pkixInformationResolver = new PKIXInformationResolver(resolver, cachingMetadataManager, keyManager);
 
         contextProvider.setPkixResolver(pkixInformationResolver);
         contextProvider.setPkixTrustEvaluator(pkixTrustEvaluator);
