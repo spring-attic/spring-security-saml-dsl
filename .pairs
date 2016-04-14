@@ -1,0 +1,7 @@
+# .pairs - configuration for 'git pair'
+pairs:
+  jdk: Jean de Klerk; jadekler
+  md: Mark Douglass; mark.douglass
+email:
+  prefix: pair
+  domain: gmail.com
