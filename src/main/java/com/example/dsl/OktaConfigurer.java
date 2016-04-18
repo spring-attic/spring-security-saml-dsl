@@ -47,17 +47,28 @@ import java.io.IOException;
 import java.util.*;
 
 public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFilterChain, HttpSecurity> {
+
+    String keystorePath;
+    String storePass;
+    String defaultKey;
+    String defaultKeyPass;
+    String metadataPath;
+    String protocol;
+    String hostName;
+    String basePath;
+    String entityId;
+
     private WebSSOProfileOptions webSSOProfileOptions = webSSOProfileOptions();
     private ExtendedMetadata extendedMetadata = extendedMetadata();
     private StaticBasicParserPool parserPool = staticBasicParserPool();
-    private FilesystemMetadataProvider filesystemMetadataProvider = fileSystemMetadataProvider(parserPool);
-    private ExtendedMetadataDelegate extendedMetadataDelegate = extendedMetadataDelegate(extendedMetadata, filesystemMetadataProvider);
-    private KeyManager keyManager = keyManager();
-    private CachingMetadataManager cachingMetadataManager = cachingMetadataManager(extendedMetadataDelegate, keyManager);
-    private SAMLProcessor samlProcessor = samlProcessor(parserPool);
-    private WebSSOProfile webSSOProfile = new WebSSOProfileImpl(samlProcessor, cachingMetadataManager);
+    private SAMLProcessor samlProcessor = samlProcessor();
     private SAMLDefaultLogger samlLogger = new SAMLDefaultLogger();
-    private SAMLAuthenticationProvider samlAuthenticationProvider = samlAuthenticationProvider(samlLogger);
+    private SAMLAuthenticationProvider samlAuthenticationProvider = samlAuthenticationProvider();
+    private FilesystemMetadataProvider filesystemMetadataProvider;
+    private ExtendedMetadataDelegate extendedMetadataDelegate;
+    private KeyManager keyManager;
+    private CachingMetadataManager cachingMetadataManager;
+    private WebSSOProfile webSSOProfile;
 
     private ObjectPostProcessor<Object> objectPostProcessor = new ObjectPostProcessor<Object>() {
         public <T> T postProcess(T object) {
@@ -65,8 +76,26 @@ public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
         }
     };
 
+    public OktaConfigurer(String keystorePath, String storePass, String defaultKey, String defaultKeyPass, String metadataPath, String protocol, String hostName, String basePath, String entityId) {
+        this.keystorePath = keystorePath;
+
+        this.storePass = storePass;
+        this.defaultKey = defaultKey;
+        this.defaultKeyPass = defaultKeyPass;
+        this.metadataPath = metadataPath;
+        this.protocol = protocol;
+        this.hostName = hostName;
+        this.basePath = basePath;
+        this.entityId = entityId;
+        this.filesystemMetadataProvider = fileSystemMetadataProvider();
+        this.extendedMetadataDelegate = extendedMetadataDelegate();
+        this.keyManager = keyManager();
+        this.cachingMetadataManager = cachingMetadataManager();
+        this.webSSOProfile = new WebSSOProfileImpl(samlProcessor, cachingMetadataManager);
+    }
+
     @Override
-    public void init(HttpSecurity http) throws Exception {
+    public void init(HttpSecurity http) {
         http.authenticationProvider(samlAuthenticationProvider);
 
         bootstrap();
@@ -74,11 +103,22 @@ public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
         SAMLContextProvider contextProvider = contextProvider();
         SAMLEntryPoint samlEntryPoint = samlEntryPoint(contextProvider);
 
-        http.httpBasic().authenticationEntryPoint(samlEntryPoint);
+        try {
+            http.httpBasic().authenticationEntryPoint(samlEntryPoint);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
         http
-            .addFilterBefore(metadataGeneratorFilter(samlEntryPoint), ChannelProcessingFilter.class)
-            .addFilterAfter(samlFilter(samlEntryPoint, contextProvider), BasicAuthenticationFilter.class);
+                .addFilterBefore(metadataGeneratorFilter(samlEntryPoint), ChannelProcessingFilter.class)
+                .addFilterAfter(samlFilter(samlEntryPoint, contextProvider), BasicAuthenticationFilter.class);
+    }
+
+    private String entityBaseURL() {
+        String entityBaseURL = hostName + "/" + basePath;
+        entityBaseURL = entityBaseURL.replaceAll("//", "/").replaceAll("/$", "");
+        entityBaseURL = protocol + "://" + entityBaseURL;
+        return entityBaseURL;
     }
 
     private SAMLEntryPoint samlEntryPoint(SAMLContextProvider contextProvider) {
@@ -91,14 +131,14 @@ public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
         return samlEntryPoint;
     }
 
-    private SAMLProcessor samlProcessor(StaticBasicParserPool parserPool) {
+    private SAMLProcessor samlProcessor() {
         Collection<SAMLBinding> bindings = new ArrayList<>();
         bindings.add(httpRedirectDeflateBinding(parserPool));
         bindings.add(httpPostBinding(parserPool));
         return new SAMLProcessorImpl(bindings);
     }
 
-    private CachingMetadataManager cachingMetadataManager(ExtendedMetadataDelegate extendedMetadataDelegate, KeyManager keyManager) {
+    private CachingMetadataManager cachingMetadataManager() {
         List<MetadataProvider> providers = new ArrayList<>();
         providers.add(extendedMetadataDelegate);
 
@@ -123,20 +163,20 @@ public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
         return parserPool;
     }
 
-    private ExtendedMetadataDelegate extendedMetadataDelegate(ExtendedMetadata extendedMetadata, FilesystemMetadataProvider filesystemMetadataProvider) {
+    private ExtendedMetadataDelegate extendedMetadataDelegate() {
         ExtendedMetadataDelegate extendedMetadataDelegate = new ExtendedMetadataDelegate(filesystemMetadataProvider, extendedMetadata);
         extendedMetadataDelegate.setMetadataTrustCheck(false);
         extendedMetadataDelegate.setMetadataRequireSignature(false);
         return extendedMetadataDelegate;
     }
 
-    private FilesystemMetadataProvider fileSystemMetadataProvider(ParserPool parserPool) {
+    private FilesystemMetadataProvider fileSystemMetadataProvider() {
         DefaultResourceLoader loader = new DefaultResourceLoader();
-        Resource storeFile = loader.getResource("classpath:/saml/colombia-metadata.xml");
+        Resource metadataResource = loader.getResource("classpath:/" + metadataPath);
 
         File oktaMetadata = null;
         try {
-            oktaMetadata = storeFile.getFile();
+            oktaMetadata = metadataResource.getFile();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -165,8 +205,12 @@ public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
         return webSSOProfileOptions;
     }
 
-    private void bootstrap() throws ConfigurationException {
-        PaosBootstrap.bootstrap();
+    private void bootstrap()  {
+        try {
+            PaosBootstrap.bootstrap();
+        } catch (ConfigurationException e) {
+            e.printStackTrace();
+        }
 
         NamedKeyInfoGeneratorManager manager = Configuration.getGlobalSecurityConfiguration().getKeyInfoGeneratorManager();
         X509KeyInfoGeneratorFactory generator = new X509KeyInfoGeneratorFactory();
@@ -194,39 +238,42 @@ public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
         return samlWebSSOProcessingFilter;
     }
 
-    private MetadataGeneratorFilter metadataGeneratorFilter(SAMLEntryPoint samlEntryPoint) throws IOException, MetadataProviderException, XMLParserException {
+    private MetadataGeneratorFilter metadataGeneratorFilter(SAMLEntryPoint samlEntryPoint) {
 
-        MetadataGeneratorFilter metadataGeneratorFilter = new MetadataGeneratorFilter(MetadataGeneratorBuilder.build(samlEntryPoint, extendedMetadata, keyManager));
+        MetadataGeneratorFilter metadataGeneratorFilter = new MetadataGeneratorFilter(MetadataGeneratorBuilder.build(samlEntryPoint, extendedMetadata, keyManager, entityBaseURL(), entityId));
         metadataGeneratorFilter.setManager(cachingMetadataManager);
         return metadataGeneratorFilter;
     }
 
-    private FilterChainProxy samlFilter(SAMLEntryPoint samlEntryPoint, SAMLContextProvider contextProvider) throws Exception {
+    private FilterChainProxy samlFilter(SAMLEntryPoint samlEntryPoint, SAMLContextProvider contextProvider) {
         List<SecurityFilterChain> chains = new ArrayList<>();
         chains.add(new DefaultSecurityFilterChain(new AntPathRequestMatcher("/saml/login/**"),
-            samlEntryPoint));
+                samlEntryPoint));
         chains.add(new DefaultSecurityFilterChain(new AntPathRequestMatcher("/saml/metadata/**"),
-            new MetadataDisplayFilter()));
-        chains.add(new DefaultSecurityFilterChain(new AntPathRequestMatcher("/saml/SSO/**"),
-            samlWebSSOProcessingFilter(samlAuthenticationProvider, contextProvider, samlProcessor)));
+                new MetadataDisplayFilter()));
+        try {
+            chains.add(new DefaultSecurityFilterChain(new AntPathRequestMatcher("/saml/SSO/**"),
+                    samlWebSSOProcessingFilter(samlAuthenticationProvider, contextProvider, samlProcessor)));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         SAMLDiscovery samlDiscovery = new SAMLDiscovery();
         samlDiscovery.setMetadata(cachingMetadataManager);
         samlDiscovery.setContextProvider(contextProvider);
         chains.add(new DefaultSecurityFilterChain(new AntPathRequestMatcher("/saml/discovery/**"),
-            samlDiscovery));
+                samlDiscovery));
         return new FilterChainProxy(chains);
     }
 
-    private static KeyManager keyManager() {
+    private KeyManager keyManager() {
         DefaultResourceLoader loader = new DefaultResourceLoader();
-        Resource storeFile = loader.getResource("classpath:/saml/colombia.jks");
+        Resource storeFile = loader.getResource("classpath:/" + keystorePath);
         Map<String, String> passwords = new HashMap<>();
-        passwords.put("colombia", "colombia-password");
-        String defaultKey = "colombia";
-        return new JKSKeyManager(storeFile, "colombia-password", passwords, defaultKey);
+        passwords.put(defaultKey, defaultKeyPass);
+        return new JKSKeyManager(storeFile, storePass, passwords, defaultKey);
     }
 
-    private SAMLAuthenticationProvider samlAuthenticationProvider(SAMLLogger samlLogger) {
+    private SAMLAuthenticationProvider samlAuthenticationProvider() {
         SAMLAuthenticationProvider samlAuthenticationProvider = new SAMLAuthenticationProvider();
         samlAuthenticationProvider.setForcePrincipalAsString(false);
         samlAuthenticationProvider.setSamlLogger(samlLogger);
@@ -237,9 +284,9 @@ public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
     private SAMLContextProvider contextProvider() {
         SAMLContextProviderLB contextProvider = new SAMLContextProviderLB();
         contextProvider.setMetadata(cachingMetadataManager);
-        contextProvider.setScheme("https");
-        contextProvider.setServerName("localhost:8443");
-        contextProvider.setContextPath("/");
+        contextProvider.setScheme(protocol);
+        contextProvider.setServerName(hostName);
+        contextProvider.setContextPath(basePath);
         contextProvider.setKeyManager(keyManager);
 
         MetadataCredentialResolver resolver = new MetadataCredentialResolver(cachingMetadataManager, keyManager);
