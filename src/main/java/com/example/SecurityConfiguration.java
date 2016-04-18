@@ -1,6 +1,5 @@
 package com.example;
 
-import com.example.dsl.OktaConfigurer;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.config.annotation.SecurityConfigurer;
@@ -19,7 +18,7 @@ class SecurityConfiguration extends WebSecurityConfigurerAdapter {
     @Override
     protected void configure(HttpSecurity http) throws Exception {
         SecurityConfigurer securityConfigurerAdapter =
-                oktaConfigurerBuilder()
+            oktaConfigurerBuilder()
                 .keystorePath("saml/colombia.jks")
                 .keystorePassword("colombia-password")
                 .defaultKey("colombia")
@@ -29,7 +28,7 @@ class SecurityConfiguration extends WebSecurityConfigurerAdapter {
                 .hostname("localhost:8443")
                 .basePath("/")
                 .entityId("com:example")
-        .build();
+                .build();
 
         http.apply(securityConfigurerAdapter);
 

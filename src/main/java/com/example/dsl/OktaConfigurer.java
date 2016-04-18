@@ -25,7 +25,6 @@ import org.springframework.security.saml.context.SAMLContextProviderLB;
 import org.springframework.security.saml.key.JKSKeyManager;
 import org.springframework.security.saml.key.KeyManager;
 import org.springframework.security.saml.log.SAMLDefaultLogger;
-import org.springframework.security.saml.log.SAMLLogger;
 import org.springframework.security.saml.metadata.*;
 import org.springframework.security.saml.processor.*;
 import org.springframework.security.saml.trust.MetadataCredentialResolver;
@@ -48,15 +47,15 @@ import java.util.*;
 
 public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFilterChain, HttpSecurity> {
 
-    String keystorePath;
-    String storePass;
-    String defaultKey;
-    String defaultKeyPass;
-    String metadataPath;
-    String protocol;
-    String hostName;
-    String basePath;
-    String entityId;
+    private String keystorePath;
+    private String storePass;
+    private String defaultKey;
+    private String defaultKeyPass;
+    private String metadataPath;
+    private String protocol;
+    private String hostName;
+    private String basePath;
+    private String entityId;
 
     private WebSSOProfileOptions webSSOProfileOptions = webSSOProfileOptions();
     private ExtendedMetadata extendedMetadata = extendedMetadata();
@@ -110,8 +109,8 @@ public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
         }
 
         http
-                .addFilterBefore(metadataGeneratorFilter(samlEntryPoint), ChannelProcessingFilter.class)
-                .addFilterAfter(samlFilter(samlEntryPoint, contextProvider), BasicAuthenticationFilter.class);
+            .addFilterBefore(metadataGeneratorFilter(samlEntryPoint), ChannelProcessingFilter.class)
+            .addFilterAfter(samlFilter(samlEntryPoint, contextProvider), BasicAuthenticationFilter.class);
     }
 
     private String entityBaseURL() {
@@ -205,7 +204,7 @@ public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
         return webSSOProfileOptions;
     }
 
-    private void bootstrap()  {
+    private void bootstrap() {
         try {
             PaosBootstrap.bootstrap();
         } catch (ConfigurationException e) {
@@ -248,12 +247,12 @@ public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
     private FilterChainProxy samlFilter(SAMLEntryPoint samlEntryPoint, SAMLContextProvider contextProvider) {
         List<SecurityFilterChain> chains = new ArrayList<>();
         chains.add(new DefaultSecurityFilterChain(new AntPathRequestMatcher("/saml/login/**"),
-                samlEntryPoint));
+            samlEntryPoint));
         chains.add(new DefaultSecurityFilterChain(new AntPathRequestMatcher("/saml/metadata/**"),
-                new MetadataDisplayFilter()));
+            new MetadataDisplayFilter()));
         try {
             chains.add(new DefaultSecurityFilterChain(new AntPathRequestMatcher("/saml/SSO/**"),
-                    samlWebSSOProcessingFilter(samlAuthenticationProvider, contextProvider, samlProcessor)));
+                samlWebSSOProcessingFilter(samlAuthenticationProvider, contextProvider, samlProcessor)));
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -261,7 +260,7 @@ public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
         samlDiscovery.setMetadata(cachingMetadataManager);
         samlDiscovery.setContextProvider(contextProvider);
         chains.add(new DefaultSecurityFilterChain(new AntPathRequestMatcher("/saml/discovery/**"),
-                samlDiscovery));
+            samlDiscovery));
         return new FilterChainProxy(chains);
     }
 

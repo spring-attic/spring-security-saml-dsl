@@ -6,14 +6,14 @@ public class OktaConfigurerBuilder {
     private String keystorePassword;
     private String defaultKey;
     private String defaultKeyPassword;
-
     private String metadataFilePath = "saml/metadata.xml";
     private String protocol = "https";
     private String basePath = "/";
     private String hostname;
     private String entityId;
 
-    private OktaConfigurerBuilder() {}
+    private OktaConfigurerBuilder() {
+    }
 
     public static OktaConfigurerBuilder oktaConfigurerBuilder() {
         return new OktaConfigurerBuilder();
