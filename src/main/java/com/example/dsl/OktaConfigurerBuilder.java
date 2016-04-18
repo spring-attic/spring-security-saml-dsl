@@ -2,7 +2,7 @@ package com.example.dsl;
 
 public class OktaConfigurerBuilder {
 
-    private String keystorePath;
+    private String keystorePath = "saml/keystore.jks";
     private String keystorePassword;
     private String defaultKey;
     private String defaultKeyPassword;
@@ -13,7 +13,7 @@ public class OktaConfigurerBuilder {
     private String hostname;
     private String entityId;
 
-    private OktaConfigurerBuilder() {};
+    private OktaConfigurerBuilder() {}
 
     public static OktaConfigurerBuilder oktaConfigurerBuilder() {
         return new OktaConfigurerBuilder();

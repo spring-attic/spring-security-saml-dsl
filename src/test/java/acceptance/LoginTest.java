@@ -1,3 +1,5 @@
+package acceptance;
+
 import com.example.ColombiaApplication;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -21,7 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @WebIntegrationTest
 @SpringApplicationConfiguration(classes = ColombiaApplication.class)
 @RunWith(SpringJUnit4ClassRunner.class)
-public class acceptance {
+public class LoginTest {
 
     private final WebDriver driver = new FirefoxDriver();
 
@@ -54,7 +56,6 @@ public class acceptance {
         driver.findElement(By.name("username")).sendKeys(username);
         driver.findElement(By.name("password")).sendKeys(password);
         driver.findElement(By.name("login")).submit();
-
 
         assertThat(driver.findElement(By.tagName("body")).getText()).contains("Hello world");
     }
