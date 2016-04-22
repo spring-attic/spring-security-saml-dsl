@@ -89,22 +89,27 @@ public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
         cachingMetadataManager = cachingMetadataManager();
         webSSOProfile = new WebSSOProfileImpl(samlProcessor, cachingMetadataManager);
 
-        http.authenticationProvider(samlAuthenticationProvider);
-
         bootstrap();
 
         SAMLContextProvider contextProvider = contextProvider();
         SAMLEntryPoint samlEntryPoint = samlEntryPoint(contextProvider);
 
         try {
-            http.httpBasic().authenticationEntryPoint(samlEntryPoint);
+            http
+                .httpBasic()
+                .authenticationEntryPoint(samlEntryPoint)
+                .and()
+                .csrf()
+                .ignoringAntMatchers("/saml/SSO");
+
         } catch (Exception e) {
             e.printStackTrace();
         }
 
         http
             .addFilterBefore(metadataGeneratorFilter(samlEntryPoint), ChannelProcessingFilter.class)
-            .addFilterAfter(samlFilter(samlEntryPoint, contextProvider), BasicAuthenticationFilter.class);
+            .addFilterAfter(samlFilter(samlEntryPoint, contextProvider), BasicAuthenticationFilter.class)
+            .authenticationProvider(samlAuthenticationProvider);
     }
 
     private String entityBaseURL() {

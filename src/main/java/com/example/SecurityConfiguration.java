@@ -34,9 +34,6 @@ class SecurityConfiguration extends WebSecurityConfigurerAdapter {
         http
             .requiresChannel()
             .anyRequest().requiresSecure();
-        http
-            .csrf()
-            .disable();
 
         http
             .authorizeRequests()
