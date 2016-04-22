@@ -1,6 +1,7 @@
 package acceptance;
 
 import com.example.ColombiaApplication;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -12,6 +13,7 @@ import org.springframework.boot.test.SpringApplicationConfiguration;
 import org.springframework.boot.test.WebIntegrationTest;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -24,6 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringApplicationConfiguration(classes = ColombiaApplication.class)
 @RunWith(SpringJUnit4ClassRunner.class)
 @ActiveProfiles("http-metadata")
+@DirtiesContext(classMode= DirtiesContext.ClassMode.AFTER_CLASS)
 public class HttpMetadataLoginTest {
     private final WebDriver driver = new FirefoxDriver();
 
@@ -48,6 +51,11 @@ public class HttpMetadataLoginTest {
         driver.get(baseUrl);
     }
 
+    @After
+    public void teardown() {
+        driver.close();
+    }
+
     @Test
     public void canLogin() {
         driver.findElement(By.name("username")).sendKeys(username);
@@ -55,14 +63,5 @@ public class HttpMetadataLoginTest {
         driver.findElement(By.name("login")).submit();
 
         assertThat(driver.findElement(By.tagName("body")).getText()).contains("Hello world");
-    }
-
-    @Test
-    public void cantLoginWithBadCreds() {
-        driver.findElement(By.name("username")).sendKeys("someguy");
-        driver.findElement(By.name("password")).sendKeys("somepass");
-        driver.findElement(By.name("login")).submit();
-
-        assertThat(driver.findElement(By.tagName("body")).getText()).contains("Sign in failed!");
     }
 }

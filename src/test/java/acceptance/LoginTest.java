@@ -1,6 +1,7 @@
 package acceptance;
 
 import com.example.ColombiaApplication;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -12,6 +13,7 @@ import org.springframework.boot.test.SpringApplicationConfiguration;
 import org.springframework.boot.test.WebIntegrationTest;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import java.io.IOException;
@@ -22,6 +24,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @WebIntegrationTest
 @SpringApplicationConfiguration(classes = ColombiaApplication.class)
 @RunWith(SpringJUnit4ClassRunner.class)
+@DirtiesContext(classMode= DirtiesContext.ClassMode.AFTER_CLASS)
 public class LoginTest {
     private final WebDriver driver = new FirefoxDriver();
 
@@ -44,6 +47,11 @@ public class LoginTest {
     public void setup() {
         baseUrl = String.format("https://localhost:%d", port);
         driver.get(baseUrl);
+    }
+
+    @After
+    public void teardown() {
+        driver.close();
     }
 
     @Test
