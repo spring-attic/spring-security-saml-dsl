@@ -2,7 +2,6 @@ package com.example;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
-import org.springframework.core.annotation.Order;
 import org.springframework.security.config.annotation.SecurityConfigurer;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -14,8 +13,9 @@ import static com.example.dsl.OktaConfigurer.okta;
 @EnableWebSecurity
 @Configuration
 @EnableGlobalMethodSecurity(securedEnabled = true)
-@Profile("!http-metadata")
-class SecurityConfiguration extends WebSecurityConfigurerAdapter {
+@Profile("http-metadata")
+public class HttpMetadataSecurityConfiguration extends WebSecurityConfigurerAdapter {
+
     @Override
     protected void configure(HttpSecurity http) throws Exception {
         SecurityConfigurer securityConfigurerAdapter =
@@ -24,7 +24,7 @@ class SecurityConfiguration extends WebSecurityConfigurerAdapter {
                 .keystorePassword("colombia-password")
                 .defaultKey("colombia")
                 .defaultKeyPassword("colombia-password")
-                .metadataFilePath("saml/colombia-metadata.xml")
+                .metadataFilePath("https://dev-952390.oktapreview.com/app/exk5zn8pgvIUEnKkQ0h7/sso/saml/metadata")
                 .protocol("https")
                 .hostname("localhost:8443")
                 .basePath("/")
@@ -43,4 +43,5 @@ class SecurityConfiguration extends WebSecurityConfigurerAdapter {
             .antMatchers("/error").permitAll()
             .anyRequest().authenticated();
     }
+
 }

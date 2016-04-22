@@ -1,8 +1,10 @@
 package com.example.dsl;
 
+import org.apache.commons.httpclient.HttpClient;
 import org.opensaml.Configuration;
 import org.opensaml.PaosBootstrap;
 import org.opensaml.saml2.metadata.provider.FilesystemMetadataProvider;
+import org.opensaml.saml2.metadata.provider.HTTPMetadataProvider;
 import org.opensaml.saml2.metadata.provider.MetadataProvider;
 import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.opensaml.xml.ConfigurationException;
@@ -67,7 +69,7 @@ public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
     private SAMLProcessor samlProcessor = samlProcessor();
     private SAMLDefaultLogger samlLogger = new SAMLDefaultLogger();
     private SAMLAuthenticationProvider samlAuthenticationProvider = samlAuthenticationProvider();
-    private FilesystemMetadataProvider filesystemMetadataProvider;
+    private MetadataProvider metadataProvider;
     private ExtendedMetadataDelegate extendedMetadataDelegate;
     private KeyManager keyManager;
     private CachingMetadataManager cachingMetadataManager;
@@ -85,7 +87,7 @@ public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
     @Override
     public void init(HttpSecurity http) {
 
-        filesystemMetadataProvider = fileSystemMetadataProvider();
+        metadataProvider = metadataProvider();
         extendedMetadataDelegate = extendedMetadataDelegate();
         keyManager = keyManager();
         cachingMetadataManager = cachingMetadataManager();
@@ -213,15 +215,34 @@ public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
     }
 
     private ExtendedMetadataDelegate extendedMetadataDelegate() {
-        ExtendedMetadataDelegate extendedMetadataDelegate = new ExtendedMetadataDelegate(filesystemMetadataProvider, extendedMetadata);
+        ExtendedMetadataDelegate extendedMetadataDelegate = new ExtendedMetadataDelegate(metadataProvider, extendedMetadata);
         extendedMetadataDelegate.setMetadataTrustCheck(false);
         extendedMetadataDelegate.setMetadataRequireSignature(false);
         return extendedMetadataDelegate;
     }
 
+    private MetadataProvider metadataProvider() {
+        if (metadataPath.startsWith("http")) {
+            return httpMetadataProvider();
+        } else {
+            return fileSystemMetadataProvider();
+        }
+    }
+
+    private HTTPMetadataProvider httpMetadataProvider() {
+        try {
+            HTTPMetadataProvider httpMetadataProvider = new HTTPMetadataProvider(new Timer(), new HttpClient(), metadataPath);
+            httpMetadataProvider.setParserPool(parserPool);
+            return httpMetadataProvider;
+        } catch (MetadataProviderException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
     private FilesystemMetadataProvider fileSystemMetadataProvider() {
         DefaultResourceLoader loader = new DefaultResourceLoader();
-        Resource metadataResource = loader.getResource("classpath:/" + metadataPath);
+        Resource metadataResource = loader.getResource(metadataPath);
 
         File oktaMetadata = null;
         try {
@@ -315,7 +336,7 @@ public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 
     private KeyManager keyManager() {
         DefaultResourceLoader loader = new DefaultResourceLoader();
-        Resource storeFile = loader.getResource("classpath:/" + keystorePath);
+        Resource storeFile = loader.getResource(keystorePath);
         Map<String, String> passwords = new HashMap<>();
         passwords.put(defaultKey, defaultKeyPass);
         return new JKSKeyManager(storeFile, storePass, passwords, defaultKey);
