@@ -8,7 +8,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 
-import static com.example.dsl.OktaConfigurerBuilder.oktaConfigurerBuilder;
+import static com.example.dsl.OktaConfigurer.okta;
 
 @EnableWebSecurity
 @Configuration
@@ -18,7 +18,7 @@ class SecurityConfiguration extends WebSecurityConfigurerAdapter {
     @Override
     protected void configure(HttpSecurity http) throws Exception {
         SecurityConfigurer securityConfigurerAdapter =
-            oktaConfigurerBuilder()
+            okta()
                 .keystorePath("saml/colombia.jks")
                 .keystorePassword("colombia-password")
                 .defaultKey("colombia")
@@ -27,8 +27,7 @@ class SecurityConfiguration extends WebSecurityConfigurerAdapter {
                 .protocol("https")
                 .hostname("localhost:8443")
                 .basePath("/")
-                .entityId("com:example")
-                .build();
+                .entityId("com:example");
 
         http.apply(securityConfigurerAdapter);
 

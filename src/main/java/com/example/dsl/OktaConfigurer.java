@@ -74,26 +74,21 @@ public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
         }
     };
 
-    public OktaConfigurer(String keystorePath, String storePass, String defaultKey, String defaultKeyPass, String metadataPath, String protocol, String hostName, String basePath, String entityId) {
-        this.keystorePath = keystorePath;
+    private OktaConfigurer() {}
 
-        this.storePass = storePass;
-        this.defaultKey = defaultKey;
-        this.defaultKeyPass = defaultKeyPass;
-        this.metadataPath = metadataPath;
-        this.protocol = protocol;
-        this.hostName = hostName;
-        this.basePath = basePath;
-        this.entityId = entityId;
-        this.filesystemMetadataProvider = fileSystemMetadataProvider();
-        this.extendedMetadataDelegate = extendedMetadataDelegate();
-        this.keyManager = keyManager();
-        this.cachingMetadataManager = cachingMetadataManager();
-        this.webSSOProfile = new WebSSOProfileImpl(samlProcessor, cachingMetadataManager);
+    public static OktaConfigurer okta() {
+        return new OktaConfigurer();
     }
 
     @Override
     public void init(HttpSecurity http) {
+
+        filesystemMetadataProvider = fileSystemMetadataProvider();
+        extendedMetadataDelegate = extendedMetadataDelegate();
+        keyManager = keyManager();
+        cachingMetadataManager = cachingMetadataManager();
+        webSSOProfile = new WebSSOProfileImpl(samlProcessor, cachingMetadataManager);
+
         http.authenticationProvider(samlAuthenticationProvider);
 
         bootstrap();
@@ -296,5 +291,50 @@ public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
         contextProvider.setMetadataResolver(resolver);
 
         return contextProvider;
+    }
+
+    public OktaConfigurer keystorePath(String keystorePath) {
+        this.keystorePath = keystorePath;
+        return this;
+    }
+
+    public OktaConfigurer keystorePassword(String keystorePassword) {
+        this.storePass = keystorePassword;
+        return this;
+    }
+
+    public OktaConfigurer defaultKey(String defaultKey) {
+        this.defaultKey = defaultKey;
+        return this;
+    }
+
+    public OktaConfigurer defaultKeyPassword(String defaultKeyPassword) {
+        this.defaultKeyPass = defaultKeyPassword;
+        return this;
+    }
+
+    public OktaConfigurer metadataFilePath(String metadataFilePath) {
+        this.metadataPath = metadataFilePath;
+        return this;
+    }
+
+    public OktaConfigurer protocol(String protocol) {
+        this.protocol = protocol;
+        return this;
+    }
+
+    public OktaConfigurer hostname(String hostname) {
+        this.hostName = hostname;
+        return this;
+    }
+
+    public OktaConfigurer basePath(String basePath) {
+        this.basePath = basePath;
+        return this;
+    }
+
+    public OktaConfigurer entityId(String entityId) {
+        this.entityId = entityId;
+        return this;
     }
 }

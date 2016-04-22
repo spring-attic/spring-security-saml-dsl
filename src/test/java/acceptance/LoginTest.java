@@ -54,4 +54,13 @@ public class LoginTest {
 
         assertThat(driver.findElement(By.tagName("body")).getText()).contains("Hello world");
     }
+
+    @Test
+    public void cantLoginWithBadCreds() {
+        driver.findElement(By.name("username")).sendKeys("someguy");
+        driver.findElement(By.name("password")).sendKeys("somepass");
+        driver.findElement(By.name("login")).submit();
+
+        assertThat(driver.findElement(By.tagName("body")).getText()).contains("Sign in failed!");
+    }
 }
