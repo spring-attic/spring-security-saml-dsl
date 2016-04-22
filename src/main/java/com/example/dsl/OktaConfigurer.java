@@ -74,7 +74,8 @@ public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
         }
     };
 
-    private OktaConfigurer() {}
+    private OktaConfigurer() {
+    }
 
     public static OktaConfigurer okta() {
         return new OktaConfigurer();
