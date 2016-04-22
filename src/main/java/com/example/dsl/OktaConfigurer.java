@@ -238,8 +238,7 @@ public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
     }
 
     private MetadataGeneratorFilter metadataGeneratorFilter(SAMLEntryPoint samlEntryPoint) {
-
-        MetadataGeneratorFilter metadataGeneratorFilter = new MetadataGeneratorFilter(MetadataGeneratorBuilder.build(samlEntryPoint, extendedMetadata, keyManager, entityBaseURL(), entityId));
+        MetadataGeneratorFilter metadataGeneratorFilter = new MetadataGeneratorFilter(getMetadataGenerator(samlEntryPoint));
         metadataGeneratorFilter.setManager(cachingMetadataManager);
         return metadataGeneratorFilter;
     }
@@ -342,5 +341,18 @@ public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
     public OktaConfigurer entityId(String entityId) {
         this.entityId = entityId;
         return this;
+    }
+
+    private MetadataGenerator getMetadataGenerator(SAMLEntryPoint samlEntryPoint) {
+        MetadataGenerator metadataGenerator = new MetadataGenerator();
+
+        metadataGenerator.setSamlEntryPoint(samlEntryPoint);
+        metadataGenerator.setEntityBaseURL(entityBaseURL());
+        metadataGenerator.setKeyManager(keyManager);
+        metadataGenerator.setEntityId(entityId);
+        metadataGenerator.setIncludeDiscoveryExtension(false);
+        metadataGenerator.setExtendedMetadata(extendedMetadata);
+
+        return metadataGenerator;
     }
 }
