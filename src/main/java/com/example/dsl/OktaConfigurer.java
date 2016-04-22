@@ -45,6 +45,11 @@ import java.io.File;
 import java.io.IOException;
 import java.util.*;
 
+/*
+ Spring security configurer for okta.
+ @Author Mark Douglass
+ @Author Jean de Klerk
+*/
 public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFilterChain, HttpSecurity> {
     private String keystorePath;
     private String storePass;
