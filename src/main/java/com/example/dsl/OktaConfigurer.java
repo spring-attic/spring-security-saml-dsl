@@ -54,10 +54,10 @@ import java.util.*;
 */
 public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFilterChain, HttpSecurity> {
     private String keystorePath;
-    private String storePass;
+    private String keystorePassword;
     private String defaultKey;
     private String defaultKeyPass;
-    private String metadataPath;
+    private String metadataFilePath;
     private String protocol;
     private String hostName;
     private String basePath;
@@ -126,7 +126,7 @@ public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
     }
 
     public OktaConfigurer keystorePassword(String keystorePassword) {
-        this.storePass = keystorePassword;
+        this.keystorePassword = keystorePassword;
         return this;
     }
 
@@ -141,7 +141,7 @@ public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
     }
 
     public OktaConfigurer metadataFilePath(String metadataFilePath) {
-        this.metadataPath = metadataFilePath;
+        this.metadataFilePath = metadataFilePath;
         return this;
     }
 
@@ -222,7 +222,7 @@ public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
     }
 
     private MetadataProvider metadataProvider() {
-        if (metadataPath.startsWith("http")) {
+        if (metadataFilePath.startsWith("http")) {
             return httpMetadataProvider();
         } else {
             return fileSystemMetadataProvider();
@@ -231,7 +231,7 @@ public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 
     private HTTPMetadataProvider httpMetadataProvider() {
         try {
-            HTTPMetadataProvider httpMetadataProvider = new HTTPMetadataProvider(new Timer(), new HttpClient(), metadataPath);
+            HTTPMetadataProvider httpMetadataProvider = new HTTPMetadataProvider(new Timer(), new HttpClient(), metadataFilePath);
             httpMetadataProvider.setParserPool(parserPool);
             return httpMetadataProvider;
         } catch (MetadataProviderException e) {
@@ -242,7 +242,7 @@ public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 
     private FilesystemMetadataProvider fileSystemMetadataProvider() {
         DefaultResourceLoader loader = new DefaultResourceLoader();
-        Resource metadataResource = loader.getResource(metadataPath);
+        Resource metadataResource = loader.getResource(metadataFilePath);
 
         File oktaMetadata = null;
         try {
@@ -339,7 +339,7 @@ public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
         Resource storeFile = loader.getResource(keystorePath);
         Map<String, String> passwords = new HashMap<>();
         passwords.put(defaultKey, defaultKeyPass);
-        return new JKSKeyManager(storeFile, storePass, passwords, defaultKey);
+        return new JKSKeyManager(storeFile, keystorePassword, passwords, defaultKey);
     }
 
     private SAMLAuthenticationProvider samlAuthenticationProvider() {
