@@ -20,10 +20,12 @@ class SecurityConfiguration extends WebSecurityConfigurerAdapter {
     protected void configure(HttpSecurity http) throws Exception {
         SecurityConfigurer securityConfigurerAdapter =
             okta()
-                .keystorePath("saml/colombia.jks")
-                .keystorePassword("colombia-password")
-                .defaultKey("colombia")
-                .defaultKeyPassword("colombia-password")
+                .keyStore()
+                    .storeFilePath("saml/colombia.jks")
+                    .password("colombia-password")
+                    .keyname("colombia")
+                    .keyPassword("colombia-password")
+                    .and()
                 .metadataFilePath("saml/colombia-metadata.xml")
                 .protocol("https")
                 .hostname("localhost:8443")

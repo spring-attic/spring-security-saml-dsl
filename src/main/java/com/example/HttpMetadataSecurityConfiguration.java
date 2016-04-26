@@ -15,16 +15,17 @@ import static com.example.dsl.OktaConfigurer.okta;
 @EnableGlobalMethodSecurity(securedEnabled = true)
 @Profile("http-metadata")
 public class HttpMetadataSecurityConfiguration extends WebSecurityConfigurerAdapter {
-
     @Override
     protected void configure(HttpSecurity http) throws Exception {
         SecurityConfigurer securityConfigurerAdapter =
             okta()
-                .keystorePath("saml/colombia.jks")
-                .keystorePassword("colombia-password")
-                .defaultKey("colombia")
-                .defaultKeyPassword("colombia-password")
-                .metadataFilePath("https://dev-952390.oktapreview.com/app/exk5zn8pgvIUEnKkQ0h7/sso/saml/metadata")
+                .keyStore()
+                    .storeFilePath("saml/colombia.jks")
+                    .password("colombia-password")
+                    .keyname("colombia")
+                    .keyPassword("colombia-password")
+                    .and()
+                .metadataFilePath("saml/colombia-metadata.xml")
                 .protocol("https")
                 .hostname("localhost:8443")
                 .basePath("/")
@@ -43,5 +44,4 @@ public class HttpMetadataSecurityConfiguration extends WebSecurityConfigurerAdap
             .antMatchers("/error").permitAll()
             .anyRequest().authenticated();
     }
-
 }

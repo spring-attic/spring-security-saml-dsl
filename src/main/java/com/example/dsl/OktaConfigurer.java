@@ -53,10 +53,7 @@ import java.util.*;
  @Author Jean de Klerk
 */
 public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFilterChain, HttpSecurity> {
-    private String keystorePath;
-    private String keystorePassword;
-    private String defaultKey;
-    private String defaultKeyPass;
+    private KeyStore keyStore = new KeyStore();
     private String metadataFilePath;
     private String protocol;
     private String hostName;
@@ -120,24 +117,8 @@ public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
         return new OktaConfigurer();
     }
 
-    public OktaConfigurer keystorePath(String keystorePath) {
-        this.keystorePath = keystorePath;
-        return this;
-    }
-
-    public OktaConfigurer keystorePassword(String keystorePassword) {
-        this.keystorePassword = keystorePassword;
-        return this;
-    }
-
-    public OktaConfigurer defaultKey(String defaultKey) {
-        this.defaultKey = defaultKey;
-        return this;
-    }
-
-    public OktaConfigurer defaultKeyPassword(String defaultKeyPassword) {
-        this.defaultKeyPass = defaultKeyPassword;
-        return this;
+    public KeyStore keyStore() {
+        return keyStore;
     }
 
     public OktaConfigurer metadataFilePath(String metadataFilePath) {
@@ -336,10 +317,10 @@ public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 
     private KeyManager keyManager() {
         DefaultResourceLoader loader = new DefaultResourceLoader();
-        Resource storeFile = loader.getResource(keystorePath);
+        Resource storeFile = loader.getResource(keyStore.getStoreFilePath());
         Map<String, String> passwords = new HashMap<>();
-        passwords.put(defaultKey, defaultKeyPass);
-        return new JKSKeyManager(storeFile, keystorePassword, passwords, defaultKey);
+        passwords.put(keyStore.getKeyname(), keyStore.getKeyPassword());
+        return new JKSKeyManager(storeFile, keyStore.getPassword(), passwords, keyStore.getKeyname());
     }
 
     private SAMLAuthenticationProvider samlAuthenticationProvider() {
@@ -380,5 +361,86 @@ public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
         metadataGenerator.setExtendedMetadata(extendedMetadata);
 
         return metadataGenerator;
+    }
+
+    public class KeyStore {
+        private String storeFilePath;
+        private String password;
+        private String keyname;
+        private String keyPassword;
+
+        public KeyStore storeFilePath(String storeFilePath) {
+            this.storeFilePath = storeFilePath;
+            return this;
+        }
+
+        public KeyStore password(String password) {
+            this.password = password;
+            return this;
+        }
+
+        public KeyStore keyname(String keyname) {
+            this.keyname = keyname;
+            return this;
+        }
+
+        public KeyStore keyPassword(String keyPasswordword) {
+            this.keyPassword = keyPasswordword;
+            return this;
+        }
+
+        public OktaConfigurer and() {
+            return OktaConfigurer.this;
+        }
+
+        public String getStoreFilePath() {
+            return storeFilePath;
+        }
+
+        public String getPassword() {
+            return password;
+        }
+
+        public String getKeyname() {
+            return keyname;
+        }
+
+        public String getKeyPassword() {
+            return keyPassword;
+        }
+
+        @Override
+        public String toString() {
+            return "KeyStore{" +
+                "storeFilePath='" + storeFilePath + '\'' +
+                ", password='" + password + '\'' +
+                ", keyname='" + keyname + '\'' +
+                ", keyPassword='" + keyPassword + '\'' +
+                '}';
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            KeyStore keyStore = (KeyStore) o;
+
+            if (storeFilePath != null ? !storeFilePath.equals(keyStore.storeFilePath) : keyStore.storeFilePath != null)
+                return false;
+            if (password != null ? !password.equals(keyStore.password) : keyStore.password != null) return false;
+            if (keyname != null ? !keyname.equals(keyStore.keyname) : keyStore.keyname != null) return false;
+            return keyPassword != null ? keyPassword.equals(keyStore.keyPassword) : keyStore.keyPassword == null;
+
+        }
+
+        @Override
+        public int hashCode() {
+            int result = storeFilePath != null ? storeFilePath.hashCode() : 0;
+            result = 31 * result + (password != null ? password.hashCode() : 0);
+            result = 31 * result + (keyname != null ? keyname.hashCode() : 0);
+            result = 31 * result + (keyPassword != null ? keyPassword.hashCode() : 0);
+            return result;
+        }
     }
 }
