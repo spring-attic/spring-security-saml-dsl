@@ -14,6 +14,7 @@ import org.springframework.boot.test.WebIntegrationTest;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import java.io.IOException;
@@ -24,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @WebIntegrationTest
 @SpringApplicationConfiguration(classes = ColombiaApplication.class)
 @RunWith(SpringJUnit4ClassRunner.class)
+@ActiveProfiles("test")
 @DirtiesContext(classMode= DirtiesContext.ClassMode.AFTER_CLASS)
 public class LoginTest {
     private final WebDriver driver = new FirefoxDriver();

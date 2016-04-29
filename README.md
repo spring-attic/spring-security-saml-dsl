@@ -12,4 +12,5 @@ Okta SAML example with Spring Security
 # Running tests
 
 1. Copy `test/resources/credentials.example.yml` to `test/resources/credentials.yml` and fill in appropriately
+1. Place a link to your metadata url, or, alternatively, a filepath to your saml metadata into the appropriate spot in application-test.yml, or create an application-http-metadata.yml and place the property there.
 1. `./gradlew clean test`
