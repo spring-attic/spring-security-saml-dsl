@@ -25,7 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @WebIntegrationTest
 @SpringApplicationConfiguration(classes = ColombiaApplication.class)
 @RunWith(SpringJUnit4ClassRunner.class)
-@ActiveProfiles("http-metadata")
+@ActiveProfiles("test,http-metadata")
 @DirtiesContext(classMode= DirtiesContext.ClassMode.AFTER_CLASS)
 public class HttpMetadataLoginTest {
     private final WebDriver driver = new FirefoxDriver();

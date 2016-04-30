@@ -6,6 +6,6 @@ server:
     key-store: src/main/resources/saml/colombia.jks
     key-store-password: colombia-password
 
-logging:
-  level:
-    org.springframework.security: DEBUG
+okta:
+  metadata:
+    path: http://example.com/okta/metadata.xml
