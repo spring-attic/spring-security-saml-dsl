@@ -4,12 +4,14 @@
 
 Okta SAML example with Spring Security
 
-# Usage
+## Usage
 
-1. Add [github gradle plugin](https://github.com/layerhq/gradle-git-repo-plugin) to your `build.gradle`
-1. Add `git("https://github.com/jadekler/git-java-okta-dsl", "okta-dsl", "0.0.1", "releases")` to your dependencies
+Please note: these vague, mostly-useless instructions will be replaced once this package is hosted.
 
-# Running tests
+1. Clone locally into your project
+1. Include as a compile time resource
+
+## Running tests
 
 1. Copy `test/resources/credentials.example.yml` to `test/resources/credentials.yml` and fill in appropriately
 1. Update application-test.yml appropriately.
