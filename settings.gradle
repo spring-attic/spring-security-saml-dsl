@@ -1,0 +1,2 @@
+include 'spring-security-saml-dsl'
+include 'samples/spring-security-saml-dsl-sample'
