@@ -42,11 +42,16 @@ import org.springframework.security.web.FilterChainProxy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.channel.ChannelProcessingFilter;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
+import org.springframework.security.web.util.matcher.AndRequestMatcher;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
+import org.springframework.security.web.util.matcher.RequestMatcher;
 
+import javax.servlet.http.HttpServletRequest;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
+import java.util.regex.Pattern;
 
 /*
  Spring security configurer for okta.
@@ -98,13 +103,18 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
         SAMLContextProvider contextProvider = contextProvider();
         SAMLEntryPoint samlEntryPoint = samlEntryPoint(contextProvider);
 
+        // Workaround to get working with Spring Security 3.2.
+        RequestMatcher ignored = new AntPathRequestMatcher("/saml/SSO");
+        RequestMatcher notIgnored = new NegatedRequestMatcher(ignored);
+        RequestMatcher matcher = new AndRequestMatcher(new DefaultRequiresCsrfMatcher(), notIgnored);
+
         try {
             http
                 .httpBasic()
                 .authenticationEntryPoint(samlEntryPoint)
                 .and()
                 .csrf()
-                .ignoringAntMatchers("/saml/SSO");
+                .requireCsrfProtectionMatcher(matcher);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -450,6 +460,17 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
             result = 31 * result + (keyname != null ? keyname.hashCode() : 0);
             result = 31 * result + (keyPassword != null ? keyPassword.hashCode() : 0);
             return result;
+        }
+    }
+
+    private static final class DefaultRequiresCsrfMatcher implements RequestMatcher {
+        private Pattern allowedMethods = Pattern.compile("^(GET|HEAD|TRACE|OPTIONS)$");
+
+        /* (non-Javadoc)
+         * @see org.springframework.security.web.util.matcher.RequestMatcher#matches(javax.servlet.http.HttpServletRequest)
+         */
+        public boolean matches(HttpServletRequest request) {
+            return !allowedMethods.matcher(request.getMethod()).matches();
         }
     }
 }
