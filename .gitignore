@@ -12,6 +12,6 @@ hs_err_pid*
 .idea
 *.iml
 build/
-src/main/resources/saml/*
+spring-security-saml-dsl/src/main/resources/saml/*
 .DS_Store
 .gradle
