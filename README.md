@@ -1,7 +1,5 @@
 # git-java-okta-dsl
 
-[![Build Status](https://travis-ci.org/jadekler/git-java-okta-dsl.svg?branch=master)](https://travis-ci.org/jadekler/git-java-okta-dsl)
-
 Okta SAML example with Spring Security
 
 ## Usage
