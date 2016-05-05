@@ -1,6 +1,3 @@
-# git-java-okta-saml-example
-Okta SAML example with Spring Security
-
 ## Set up a test okta
 
 #### Basic setup
@@ -33,7 +30,7 @@ Okta SAML example with Spring Security
 1. Select Colombia and yourself, then click *Next*
 1. Click *Confirm Assignments*
 
-# One time application setup
+## One time application setup
 
 1. Generate a keystore and key in `src/main/resources/saml` with password `colombia-password`:
 

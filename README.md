@@ -1,16 +1,17 @@
-# git-java-okta-dsl
-
-Okta SAML example with Spring Security
+# spring-security-saml-dsl
 
 ## Usage
 
-Please note: these vague, mostly-useless instructions will be replaced once this package is hosted.
+TO BE ADDED as soon as this repo gets hosted somewhere. 
 
-1. Clone locally into your project
-1. Include as a compile time resource
+For now, you can locally clone this project and add it as a dependency with something like 
+`compile project(':vendor/spring-security-saml-dsl')` in gradle (if you were to clone it at 
+`your-project/vendor/spring-security-saml-dsl`.
 
-## Running tests
+## Example usage
 
-1. Copy `test/resources/credentials.example.yml` to `test/resources/credentials.yml` and fill in appropriately
-1. Update application-test.yml appropriately.
-1. `./gradlew clean test`
+Navigate to [samples/spring-security-saml-dsl-sample](https://github.com/jadekler/spring-security-saml-dsl/tree/master/samples/spring-security-saml-dsl-sample)
+for a complete README on setting up okta and configuring your app with the DSL to point at okta.
+
+## Contributing
+[Pull requests](https://help.github.com/articles/using-pull-requests/) are welcome; see the [contributor guidelines](https://github.com/spring-projects/spring-framework/blob/master/CONTRIBUTING.md) for details.
