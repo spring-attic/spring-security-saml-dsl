@@ -28,7 +28,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 @WebIntegrationTest
 @SpringApplicationConfiguration(classes = ColombiaApplication.class)
 @RunWith(SpringJUnit4ClassRunner.class)
-@ActiveProfiles("test")
 @DirtiesContext(classMode= DirtiesContext.ClassMode.AFTER_CLASS)
 public class LoginTest {
     private final WebDriver driver = new FirefoxDriver();
