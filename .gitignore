@@ -10,3 +10,4 @@
 bin
 .springBeans
 out/
+credentials.yml

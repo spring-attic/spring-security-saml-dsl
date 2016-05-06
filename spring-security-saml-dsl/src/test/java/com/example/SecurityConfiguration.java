@@ -7,8 +7,9 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.extensions.saml2.config.SAMLConfigurer;
 
-import static com.example.dsl.OktaConfigurer.okta;
+import static org.springframework.security.extensions.saml2.config.SAMLConfigurer.saml;
 
 @EnableWebSecurity
 @Configuration
@@ -18,14 +19,14 @@ class SecurityConfiguration extends WebSecurityConfigurerAdapter {
     @Override
     protected void configure(HttpSecurity http) throws Exception {
         SecurityConfigurer securityConfigurerAdapter =
-            okta()
+            saml()
                 .keyStore()
-                    .storeFilePath("saml/colombia.jks")
-                    .password("colombia-password")
-                    .keyname("colombia")
-                    .keyPassword("colombia-password")
+                    .storeFilePath("saml/keystore.jks")
+                    .password("secret")
+                    .keyname("spring")
+                    .keyPassword("secret")
                     .and()
-                .metadataFilePath("saml/colombia-metadata.xml")
+                .metadataFilePath("saml/metadata.xml")
                 .protocol("https")
                 .hostname("localhost:8443")
                 .basePath("/")
