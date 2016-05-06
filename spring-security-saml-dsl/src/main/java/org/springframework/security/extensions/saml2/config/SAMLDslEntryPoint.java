@@ -1,4 +1,4 @@
-package com.example.dsl;
+package org.springframework.security.extensions.saml2.config;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
