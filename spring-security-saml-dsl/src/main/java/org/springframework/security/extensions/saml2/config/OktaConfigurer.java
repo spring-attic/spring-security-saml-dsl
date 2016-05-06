@@ -1,4 +1,4 @@
-package com.example.dsl;
+package org.springframework.security.extensions.saml2.config;
 
 import org.apache.commons.httpclient.HttpClient;
 import org.opensaml.Configuration;
