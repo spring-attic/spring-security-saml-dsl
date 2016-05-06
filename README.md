@@ -1,12 +1,43 @@
 # spring-security-saml-dsl
 
+
 ## Usage
 
-TO BE ADDED as soon as this repo gets hosted somewhere. 
+### Gradle
 
-For now, you can locally clone this project and add it as a dependency with something like 
-`compile project(':vendor/spring-security-saml-dsl')` in gradle (if you were to clone it at 
-`your-project/vendor/spring-security-saml-dsl`.
+```groovy
+repositories {
+	maven {
+		url 'https://repo.spring.io/libs-snapshot'
+	}
+}
+dependencies {
+	compile 'org.springframework.security.extensions:spring-security-saml-dsl:1.0.0.BUILD-SNAPSHOT'
+}
+```
+
+
+### Maven
+
+```xml
+<dependencies>
+	<dependency>
+		<groupId>org.springframework.security.extensions</groupId>
+		<artifactId>spring-security-saml-dsl</artifactId>
+		<version>1.0.0.BUILD-SNAPSHOT</version>
+	</dependency>
+</dependencies>
+<repositories>
+	<repository>
+		<id>spring-snapshots</id>
+		<name>Spring Snapshots</name>
+		<url>https://repo.spring.io/libs-snapshot</url>
+		<snapshots>
+			<enabled>true</enabled>
+		</snapshots>
+	</repository>
+</repositories>
+```
 
 ## Example usage
 
