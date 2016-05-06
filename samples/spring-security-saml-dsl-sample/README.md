@@ -32,9 +32,9 @@
 
 ## One time application setup
 
-1. Generate a keystore and key in `src/main/resources/saml` with password `colombia-password`:
+1. Generate a keystore and key in `src/main/resources/saml` with password `secret`:
 
-`keytool -genkey -v -keystore colombia.jks -alias colombia -keyalg RSA -keysize 2048 -validity 10000`
+`keytool -genkey -v -keystore keystore.jks -alias spring -keyalg RSA -keysize 2048 -validity 10000`
 
 ## Running the app
 

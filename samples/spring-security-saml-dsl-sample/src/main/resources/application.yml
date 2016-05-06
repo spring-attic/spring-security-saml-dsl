@@ -2,6 +2,10 @@ server:
   port: 8443
   ssl:
     enabled: true
-    key-alias: colombia
-    key-store: src/main/resources/saml/colombia.jks
-    key-store-password: colombia-password
+    key-alias: spring
+    key-store: src/main/resources/saml/keystore.jks
+    key-store-password: secret
+
+security:
+  saml2:
+      metadata-url: https://dev-348145.oktapreview.com/app/exk6bmtlqpOBRo4a20h7/sso/saml/metadata
