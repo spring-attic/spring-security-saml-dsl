@@ -1,7 +1,7 @@
 package org.springframework.security.extensions.saml2.config;
 
 import static org.hamcrest.Matchers.containsString;
-import static org.springframework.security.extensions.saml2.config.OktaConfigurer.okta;
+import static org.springframework.security.extensions.saml2.config.SAMLConfigurer.saml;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -27,7 +27,7 @@ import org.springframework.web.context.WebApplicationContext;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration
 @WebAppConfiguration
-public class OktaConfigurerTests {
+public class SAMLConfigurerTests {
 	@Autowired
 	WebApplicationContext wac;
 
@@ -75,7 +75,7 @@ public class OktaConfigurerTests {
 					.antMatchers("/saml/**").permitAll()
 					.anyRequest().authenticated()
 					.and()
-				.apply(okta())
+				.apply(saml())
 					.keyStore()
 						.storeFilePath("saml/keystore.jks")
 						.password("secret")

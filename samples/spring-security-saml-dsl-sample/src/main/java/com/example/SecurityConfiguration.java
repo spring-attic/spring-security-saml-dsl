@@ -1,6 +1,6 @@
 package com.example;
 
-import static org.springframework.security.extensions.saml2.config.OktaConfigurer.okta;
+import static org.springframework.security.extensions.saml2.config.SAMLConfigurer.saml;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
@@ -23,7 +23,7 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
 				.antMatchers("/saml/**").permitAll()
 				.anyRequest().authenticated()
 				.and()
-			.apply(okta())
+			.apply(saml())
 				.keyStore()
 					.storeFilePath("saml/keystore.jks")
 					.password("secret")

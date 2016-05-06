@@ -53,7 +53,7 @@ import java.util.*;
  @Author Mark Douglass
  @Author Jean de Klerk
 */
-public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFilterChain, HttpSecurity> {
+public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFilterChain, HttpSecurity> {
     private KeyStore keyStore = new KeyStore();
     private String metadataFilePath;
     private String protocol;
@@ -80,7 +80,7 @@ public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
         }
     };
 
-    private OktaConfigurer() {
+    private SAMLConfigurer() {
     }
 
     @Override
@@ -116,40 +116,40 @@ public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
             .authenticationProvider(samlAuthenticationProvider);
     }
 
-    public static OktaConfigurer okta() {
-        return new OktaConfigurer();
+    public static SAMLConfigurer saml() {
+        return new SAMLConfigurer();
     }
 
     public KeyStore keyStore() {
         return keyStore;
     }
 
-    public OktaConfigurer metadataFilePath(String metadataFilePath) {
+    public SAMLConfigurer metadataFilePath(String metadataFilePath) {
         this.metadataFilePath = metadataFilePath;
         return this;
     }
 
-    public OktaConfigurer protocol(String protocol) {
+    public SAMLConfigurer protocol(String protocol) {
         this.protocol = protocol;
         return this;
     }
 
-    public OktaConfigurer hostname(String hostname) {
+    public SAMLConfigurer hostname(String hostname) {
         this.hostName = hostname;
         return this;
     }
 
-    public OktaConfigurer basePath(String basePath) {
+    public SAMLConfigurer basePath(String basePath) {
         this.basePath = basePath;
         return this;
     }
 
-    public OktaConfigurer entityId(String entityId) {
+    public SAMLConfigurer entityId(String entityId) {
         this.entityId = entityId;
         return this;
     }
 
-    public OktaConfigurer userDetailsService(SAMLUserDetailsService samlUserDetailsService) {
+    public SAMLConfigurer userDetailsService(SAMLUserDetailsService samlUserDetailsService) {
         this.samlUserDetailsService = samlUserDetailsService;
         return this;
     }
@@ -233,16 +233,16 @@ public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
         DefaultResourceLoader loader = new DefaultResourceLoader();
         Resource metadataResource = loader.getResource(metadataFilePath);
 
-        File oktaMetadata = null;
+        File samlMetadata = null;
         try {
-            oktaMetadata = metadataResource.getFile();
+            samlMetadata = metadataResource.getFile();
         } catch (IOException e) {
             e.printStackTrace();
         }
 
         FilesystemMetadataProvider filesystemMetadataProvider = null;
         try {
-            filesystemMetadataProvider = new FilesystemMetadataProvider(oktaMetadata);
+            filesystemMetadataProvider = new FilesystemMetadataProvider(samlMetadata);
         } catch (MetadataProviderException e) {
             e.printStackTrace();
         }
@@ -398,8 +398,8 @@ public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
             return this;
         }
 
-        public OktaConfigurer and() {
-            return OktaConfigurer.this;
+        public SAMLConfigurer and() {
+            return SAMLConfigurer.this;
         }
 
         public String getStoreFilePath() {
