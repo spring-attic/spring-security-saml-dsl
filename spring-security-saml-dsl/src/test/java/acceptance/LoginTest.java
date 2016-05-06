@@ -1,6 +1,8 @@
 package acceptance;
 
 import com.example.ColombiaApplication;
+import helper.Credentials;
+import helper.LoginHelper;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -37,12 +39,9 @@ public class LoginTest {
 
     @BeforeClass
     public static void setupClass() throws IOException {
-        Resource resource = new ClassPathResource("credentials.yml");
-        Properties props = new Properties();
-        props.load(resource.getInputStream());
-
-        username = props.getProperty("username");
-        password = props.getProperty("password");
+        Credentials credentials = LoginHelper.loadCredentials();
+        username = credentials.getUsername();
+        password = credentials.getPassword();
     }
 
     @Before
