@@ -1,7 +1,18 @@
+buildscript {
+    repositories {
+        maven { url 'http://repo.spring.io/plugins-release' }
+    }
+    dependencies {
+        classpath 'org.springframework.build.gradle:propdeps-plugin:0.0.7'
+    }
+}
+
 apply plugin: 'java'
+apply plugin: 'propdeps'
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
+
 
 repositories {
     mavenCentral()
@@ -17,17 +28,20 @@ dependencies {
         "org.springframework.security:spring-security-web:$springVersion",
         "org.springframework.security:spring-security-config:$springVersion",
         'org.springframework.security.extensions:spring-security-saml2-core:1.0.1.RELEASE',
-        'javax.servlet:javax.servlet-api:3.1.0'
     )
 
-	testCompile(
+    provided(
+        "javax.servlet:javax.servlet-api:3.1.0",
+    )
+
+    testCompile(
 		"org.springframework.boot:spring-boot-starter-test:$springBootVersion",
 		"org.springframework.security:spring-security-test:$springVersion",
 		'org.assertj:assertj-core:3.3.0',
 		'org.seleniumhq.selenium:selenium-java:2.52.0',
 		"org.springframework.boot:spring-boot-starter-thymeleaf:$springBootVersion",
 		"org.springframework.boot:spring-boot-starter-web:$springBootVersion",
-		"org.springframework.boot:spring-boot-starter-jetty:$springBootVersion"
+		"org.springframework.boot:spring-boot-starter-jetty:$springBootVersion",
 	)
 
     configurations {
