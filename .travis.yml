@@ -1,5 +1,9 @@
 language: java
 jdk:
-  - oraclejdk8
+- oraclejdk8
 script:
-  - ./gradlew assemble
+- "./gradlew assemble test"
+before_install:
+- openssl aes-256-cbc -K $encrypted_96717127ae4b_key -iv $encrypted_96717127ae4b_iv
+  -in credentials.yml.enc -out spring-security-saml-dsl/src/test/resources/credentials.yml
+  -d

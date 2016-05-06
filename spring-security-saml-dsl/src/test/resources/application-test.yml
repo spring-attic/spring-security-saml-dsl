@@ -1,0 +1,11 @@
+server:
+  port: 8443
+  ssl:
+    enabled: true
+    key-alias: spring
+    key-store: src/test/resources/saml/keystore.jks
+    key-store-password: secret
+
+saml:
+  metadata:
+    path: http://example.com/okta/metadata.xml
