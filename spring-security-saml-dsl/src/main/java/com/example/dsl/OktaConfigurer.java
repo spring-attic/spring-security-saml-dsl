@@ -31,6 +31,7 @@ import org.springframework.security.saml.metadata.*;
 import org.springframework.security.saml.processor.*;
 import org.springframework.security.saml.trust.MetadataCredentialResolver;
 import org.springframework.security.saml.trust.PKIXInformationResolver;
+import org.springframework.security.saml.userdetails.SAMLUserDetailsService;
 import org.springframework.security.saml.util.VelocityFactory;
 import org.springframework.security.saml.websso.WebSSOProfile;
 import org.springframework.security.saml.websso.WebSSOProfileConsumerImpl;
@@ -65,12 +66,13 @@ public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
     private StaticBasicParserPool parserPool = staticBasicParserPool();
     private SAMLProcessor samlProcessor = samlProcessor();
     private SAMLDefaultLogger samlLogger = new SAMLDefaultLogger();
-    private SAMLAuthenticationProvider samlAuthenticationProvider = samlAuthenticationProvider();
+    private SAMLAuthenticationProvider samlAuthenticationProvider;
     private MetadataProvider metadataProvider;
     private ExtendedMetadataDelegate extendedMetadataDelegate;
     private KeyManager keyManager;
     private CachingMetadataManager cachingMetadataManager;
     private WebSSOProfile webSSOProfile;
+    private SAMLUserDetailsService samlUserDetailsService;
 
     private ObjectPostProcessor<Object> objectPostProcessor = new ObjectPostProcessor<Object>() {
         public <T> T postProcess(T object) {
@@ -89,6 +91,7 @@ public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
         keyManager = keyManager();
         cachingMetadataManager = cachingMetadataManager();
         webSSOProfile = new WebSSOProfileImpl(samlProcessor, cachingMetadataManager);
+        samlAuthenticationProvider = samlAuthenticationProvider();
 
         bootstrap();
 
@@ -143,6 +146,11 @@ public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 
     public OktaConfigurer entityId(String entityId) {
         this.entityId = entityId;
+        return this;
+    }
+
+    public OktaConfigurer userDetailsService(SAMLUserDetailsService samlUserDetailsService) {
+        this.samlUserDetailsService = samlUserDetailsService;
         return this;
     }
 
@@ -328,6 +336,7 @@ public class OktaConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
         samlAuthenticationProvider.setForcePrincipalAsString(false);
         samlAuthenticationProvider.setSamlLogger(samlLogger);
         samlAuthenticationProvider.setConsumer(new WebSSOProfileConsumerImpl());
+        samlAuthenticationProvider.setUserDetails(this.samlUserDetailsService);
         return samlAuthenticationProvider;
     }
 
