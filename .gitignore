@@ -2,6 +2,10 @@
 .idea
 *.iml
 *build/
-*resources/saml/
 .DS_Store
 .gradle
+.settings
+.project
+.classpath
+bin
+.springBeans
