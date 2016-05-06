@@ -8,4 +8,4 @@ server:
 
 saml:
   metadata:
-    path: http://example.com/okta/metadata.xml
+    path: saml/metadata.xml
