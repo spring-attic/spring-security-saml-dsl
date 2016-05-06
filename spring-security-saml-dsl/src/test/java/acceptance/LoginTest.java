@@ -21,6 +21,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import java.io.IOException;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -46,6 +47,8 @@ public class LoginTest {
 
     @Before
     public void setup() {
+        driver.manage().timeouts().implicitlyWait(5, TimeUnit.SECONDS);
+
         baseUrl = String.format("https://localhost:%d", port);
         driver.get(baseUrl);
     }
