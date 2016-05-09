@@ -22,17 +22,21 @@ class SecurityConfiguration extends WebSecurityConfigurerAdapter {
     protected void configure(HttpSecurity http) throws Exception {
         SecurityConfigurer securityConfigurerAdapter =
             saml()
+                .identityProvider()
+                    .metadataFilePath(metadataPath)
+                    .and()
+                .serviceProvider()
                 .keyStore()
                     .storeFilePath("saml/keystore.jks")
                     .password("secret")
                     .keyname("spring")
                     .keyPassword("secret")
                     .and()
-                .metadataFilePath(metadataPath)
                 .protocol("https")
                 .hostname("localhost:8443")
                 .basePath("/")
-                .entityId("com:example");
+                .entityId("com:example")
+                .and();
 
         http.apply(securityConfigurerAdapter);
 
