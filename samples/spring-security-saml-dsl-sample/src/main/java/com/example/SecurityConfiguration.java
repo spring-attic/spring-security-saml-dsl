@@ -24,15 +24,19 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
 				.anyRequest().authenticated()
 				.and()
 			.apply(saml())
-				.keyStore()
-					.storeFilePath("saml/keystore.jks")
-					.password("secret")
-					.keyname("spring")
-					.keyPassword("secret")
+				.serviceProvider()
+					.keyStore()
+						.storeFilePath("saml/keystore.jks")
+						.password("secret")
+						.keyname("spring")
+						.keyPassword("secret")
+						.and()
+					.protocol("https")
+					.hostname("localhost:8443")
+					.basePath("/")
 					.and()
-				.metadataFilePath(metadataUrl)
-				.protocol("https")
-				.hostname("localhost:8443")
-				.basePath("/");
+				.identityProvider()
+					.metadataFilePath(metadataUrl)
+					.and();
 	}
 }
