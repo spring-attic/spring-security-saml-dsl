@@ -76,16 +76,19 @@ public class SAMLConfigurerTests {
 					.anyRequest().authenticated()
 					.and()
 				.apply(saml())
-					.keyStore()
-						.storeFilePath("saml/keystore.jks")
-						.password("secret")
-						.keyname("spring")
-						.keyPassword("secret")
+					.identityProvider()
+						.metadataFilePath("https://dev-348145.oktapreview.com/app/exk5id72igJRNtH5M0h7/sso/saml/metadata")
 						.and()
-					.metadataFilePath("https://dev-348145.oktapreview.com/app/exk5id72igJRNtH5M0h7/sso/saml/metadata")
-					.protocol("https")
-					.hostname("localhost:8443")
-					.basePath("/");
+					.serviceProvider()
+						.keyStore()
+							.storeFilePath("saml/keystore.jks")
+							.password("secret")
+							.keyname("spring")
+							.keyPassword("secret")
+							.and()
+						.protocol("https")
+						.hostname("localhost:8443")
+						.basePath("/");
 		}
 	}
 }
