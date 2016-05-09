@@ -46,6 +46,7 @@ import org.springframework.security.web.util.matcher.AndRequestMatcher;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
+import org.springframework.stereotype.Service;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.File;
@@ -59,12 +60,8 @@ import java.util.regex.Pattern;
  @Author Jean de Klerk
 */
 public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFilterChain, HttpSecurity> {
-    private KeyStore keyStore = new KeyStore();
-    private String metadataFilePath;
-    private String protocol;
-    private String hostName;
-    private String basePath;
-    private String entityId;
+    private IdentityProvider identityProvider = new IdentityProvider();
+    private ServiceProvider serviceProvider = new ServiceProvider();
 
     private WebSSOProfileOptions webSSOProfileOptions = webSSOProfileOptions();
     private ExtendedMetadata extendedMetadata = extendedMetadata();
@@ -74,7 +71,6 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
     private SAMLAuthenticationProvider samlAuthenticationProvider;
     private MetadataProvider metadataProvider;
     private ExtendedMetadataDelegate extendedMetadataDelegate;
-    private KeyManager keyManager;
     private CachingMetadataManager cachingMetadataManager;
     private WebSSOProfile webSSOProfile;
     private SAMLUserDetailsService samlUserDetailsService;
@@ -91,9 +87,9 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
     @Override
     public void init(HttpSecurity http) {
 
-        metadataProvider = metadataProvider();
+        metadataProvider = identityProvider.metadataProvider();
         extendedMetadataDelegate = extendedMetadataDelegate();
-        keyManager = keyManager();
+        serviceProvider.keyManager = serviceProvider.keyManager();
         cachingMetadataManager = cachingMetadataManager();
         webSSOProfile = new WebSSOProfileImpl(samlProcessor, cachingMetadataManager);
         samlAuthenticationProvider = samlAuthenticationProvider();
@@ -130,44 +126,23 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
         return new SAMLConfigurer();
     }
 
-    public KeyStore keyStore() {
-        return keyStore;
-    }
-
-    public SAMLConfigurer metadataFilePath(String metadataFilePath) {
-        this.metadataFilePath = metadataFilePath;
-        return this;
-    }
-
-    public SAMLConfigurer protocol(String protocol) {
-        this.protocol = protocol;
-        return this;
-    }
-
-    public SAMLConfigurer hostname(String hostname) {
-        this.hostName = hostname;
-        return this;
-    }
-
-    public SAMLConfigurer basePath(String basePath) {
-        this.basePath = basePath;
-        return this;
-    }
-
-    public SAMLConfigurer entityId(String entityId) {
-        this.entityId = entityId;
-        return this;
-    }
-
     public SAMLConfigurer userDetailsService(SAMLUserDetailsService samlUserDetailsService) {
         this.samlUserDetailsService = samlUserDetailsService;
         return this;
     }
 
+    public IdentityProvider identityProvider() {
+        return identityProvider;
+    }
+
+    public ServiceProvider serviceProvider() {
+        return serviceProvider;
+    }
+
     private String entityBaseURL() {
-        String entityBaseURL = hostName + "/" + basePath;
+        String entityBaseURL = serviceProvider.hostName + "/" + serviceProvider.basePath;
         entityBaseURL = entityBaseURL.replaceAll("//", "/").replaceAll("/$", "");
-        entityBaseURL = protocol + "://" + entityBaseURL;
+        entityBaseURL = serviceProvider.protocol + "://" + entityBaseURL;
         return entityBaseURL;
     }
 
@@ -199,7 +174,7 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
             e.printStackTrace();
         }
 
-        cachingMetadataManager.setKeyManager(keyManager);
+        cachingMetadataManager.setKeyManager(serviceProvider.keyManager);
         return cachingMetadataManager;
     }
 
@@ -218,47 +193,6 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
         extendedMetadataDelegate.setMetadataTrustCheck(false);
         extendedMetadataDelegate.setMetadataRequireSignature(false);
         return extendedMetadataDelegate;
-    }
-
-    private MetadataProvider metadataProvider() {
-        if (metadataFilePath.startsWith("http")) {
-            return httpMetadataProvider();
-        } else {
-            return fileSystemMetadataProvider();
-        }
-    }
-
-    private HTTPMetadataProvider httpMetadataProvider() {
-        try {
-            HTTPMetadataProvider httpMetadataProvider = new HTTPMetadataProvider(new Timer(), new HttpClient(), metadataFilePath);
-            httpMetadataProvider.setParserPool(parserPool);
-            return httpMetadataProvider;
-        } catch (MetadataProviderException e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
-
-    private FilesystemMetadataProvider fileSystemMetadataProvider() {
-        DefaultResourceLoader loader = new DefaultResourceLoader();
-        Resource metadataResource = loader.getResource(metadataFilePath);
-
-        File samlMetadata = null;
-        try {
-            samlMetadata = metadataResource.getFile();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        FilesystemMetadataProvider filesystemMetadataProvider = null;
-        try {
-            filesystemMetadataProvider = new FilesystemMetadataProvider(samlMetadata);
-        } catch (MetadataProviderException e) {
-            e.printStackTrace();
-        }
-        filesystemMetadataProvider.setParserPool(parserPool);
-
-        return filesystemMetadataProvider;
     }
 
     private ExtendedMetadata extendedMetadata() {
@@ -333,14 +267,6 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
         return new FilterChainProxy(chains);
     }
 
-    private KeyManager keyManager() {
-        DefaultResourceLoader loader = new DefaultResourceLoader();
-        Resource storeFile = loader.getResource(keyStore.getStoreFilePath());
-        Map<String, String> passwords = new HashMap<>();
-        passwords.put(keyStore.getKeyname(), keyStore.getKeyPassword());
-        return new JKSKeyManager(storeFile, keyStore.getPassword(), passwords, keyStore.getKeyname());
-    }
-
     private SAMLAuthenticationProvider samlAuthenticationProvider() {
         SAMLAuthenticationProvider samlAuthenticationProvider = new SAMLAuthenticationProvider();
         samlAuthenticationProvider.setForcePrincipalAsString(false);
@@ -353,14 +279,14 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
     private SAMLContextProvider contextProvider() {
         SAMLContextProviderLB contextProvider = new SAMLContextProviderLB();
         contextProvider.setMetadata(cachingMetadataManager);
-        contextProvider.setScheme(protocol);
-        contextProvider.setServerName(hostName);
-        contextProvider.setContextPath(basePath);
-        contextProvider.setKeyManager(keyManager);
+        contextProvider.setScheme(serviceProvider.protocol);
+        contextProvider.setServerName(serviceProvider.hostName);
+        contextProvider.setContextPath(serviceProvider.basePath);
+        contextProvider.setKeyManager(serviceProvider.keyManager);
 
-        MetadataCredentialResolver resolver = new MetadataCredentialResolver(cachingMetadataManager, keyManager);
+        MetadataCredentialResolver resolver = new MetadataCredentialResolver(cachingMetadataManager, serviceProvider.keyManager);
         PKIXTrustEvaluator pkixTrustEvaluator = new CertPathPKIXTrustEvaluator();
-        PKIXInformationResolver pkixInformationResolver = new PKIXInformationResolver(resolver, cachingMetadataManager, keyManager);
+        PKIXInformationResolver pkixInformationResolver = new PKIXInformationResolver(resolver, cachingMetadataManager, serviceProvider.keyManager);
 
         contextProvider.setPkixResolver(pkixInformationResolver);
         contextProvider.setPkixTrustEvaluator(pkixTrustEvaluator);
@@ -374,92 +300,190 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 
         metadataGenerator.setSamlEntryPoint(samlEntryPoint);
         metadataGenerator.setEntityBaseURL(entityBaseURL());
-        metadataGenerator.setKeyManager(keyManager);
-        metadataGenerator.setEntityId(entityId);
+        metadataGenerator.setKeyManager(serviceProvider.keyManager);
+        metadataGenerator.setEntityId(serviceProvider.entityId);
         metadataGenerator.setIncludeDiscoveryExtension(false);
         metadataGenerator.setExtendedMetadata(extendedMetadata);
 
         return metadataGenerator;
     }
 
-    public class KeyStore {
-        private String storeFilePath;
-        private String password;
-        private String keyname;
-        private String keyPassword;
+    public class IdentityProvider {
 
-        public KeyStore storeFilePath(String storeFilePath) {
-            this.storeFilePath = storeFilePath;
+        private String metadataFilePath;
+
+        public IdentityProvider metadataFilePath(String metadataFilePath) {
+            this.metadataFilePath = metadataFilePath;
             return this;
         }
 
-        public KeyStore password(String password) {
-            this.password = password;
+        private MetadataProvider metadataProvider() {
+            if (metadataFilePath.startsWith("http")) {
+                return httpMetadataProvider();
+            } else {
+                return fileSystemMetadataProvider();
+            }
+        }
+
+        private HTTPMetadataProvider httpMetadataProvider() {
+            try {
+                HTTPMetadataProvider httpMetadataProvider = new HTTPMetadataProvider(new Timer(), new HttpClient(), metadataFilePath);
+                httpMetadataProvider.setParserPool(parserPool);
+                return httpMetadataProvider;
+            } catch (MetadataProviderException e) {
+                e.printStackTrace();
+                return null;
+            }
+        }
+
+        private FilesystemMetadataProvider fileSystemMetadataProvider() {
+            DefaultResourceLoader loader = new DefaultResourceLoader();
+            Resource metadataResource = loader.getResource(metadataFilePath);
+
+            File samlMetadata = null;
+            try {
+                samlMetadata = metadataResource.getFile();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            FilesystemMetadataProvider filesystemMetadataProvider = null;
+            try {
+                filesystemMetadataProvider = new FilesystemMetadataProvider(samlMetadata);
+            } catch (MetadataProviderException e) {
+                e.printStackTrace();
+            }
+            filesystemMetadataProvider.setParserPool(parserPool);
+
+            return filesystemMetadataProvider;
+        }
+
+        public SAMLConfigurer and () { return SAMLConfigurer.this; }
+    }
+
+    public class ServiceProvider {
+
+        private KeyStore keyStore = new KeyStore();
+        private KeyManager keyManager;
+        private String protocol;
+        private String hostName;
+        private String basePath;
+        private String entityId;
+
+
+        public ServiceProvider protocol(String protocol) {
+            this.protocol = protocol;
             return this;
         }
 
-        public KeyStore keyname(String keyname) {
-            this.keyname = keyname;
+        public ServiceProvider hostname(String hostname) {
+            this.hostName = hostname;
             return this;
         }
 
-        public KeyStore keyPassword(String keyPasswordword) {
-            this.keyPassword = keyPasswordword;
+        public ServiceProvider basePath(String basePath) {
+            this.basePath = basePath;
             return this;
         }
 
-        public SAMLConfigurer and() {
-            return SAMLConfigurer.this;
+        public ServiceProvider entityId(String entityId) {
+            this.entityId = entityId;
+            return this;
         }
 
-        public String getStoreFilePath() {
-            return storeFilePath;
+        public KeyStore keyStore() {
+            return keyStore;
         }
 
-        public String getPassword() {
-            return password;
+        public SAMLConfigurer and () { return SAMLConfigurer.this; }
+
+        private KeyManager keyManager() {
+            DefaultResourceLoader loader = new DefaultResourceLoader();
+            Resource storeFile = loader.getResource(keyStore.getStoreFilePath());
+            Map<String, String> passwords = new HashMap<>();
+            passwords.put(keyStore.getKeyname(), keyStore.getKeyPassword());
+            return new JKSKeyManager(storeFile, keyStore.getPassword(), passwords, keyStore.getKeyname());
         }
 
-        public String getKeyname() {
-            return keyname;
-        }
+        public class KeyStore {
+            private String storeFilePath;
+            private String password;
+            private String keyname;
+            private String keyPassword;
 
-        public String getKeyPassword() {
-            return keyPassword;
-        }
+            public KeyStore storeFilePath(String storeFilePath) {
+                this.storeFilePath = storeFilePath;
+                return this;
+            }
 
-        @Override
-        public String toString() {
-            return "KeyStore{" +
-                "storeFilePath='" + storeFilePath + '\'' +
-                ", password='" + password + '\'' +
-                ", keyname='" + keyname + '\'' +
-                ", keyPassword='" + keyPassword + '\'' +
-                '}';
-        }
+            public KeyStore password(String password) {
+                this.password = password;
+                return this;
+            }
 
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
+            public KeyStore keyname(String keyname) {
+                this.keyname = keyname;
+                return this;
+            }
 
-            KeyStore keyStore = (KeyStore) o;
+            public KeyStore keyPassword(String keyPasswordword) {
+                this.keyPassword = keyPasswordword;
+                return this;
+            }
 
-            if (storeFilePath != null ? !storeFilePath.equals(keyStore.storeFilePath) : keyStore.storeFilePath != null)
-                return false;
-            if (password != null ? !password.equals(keyStore.password) : keyStore.password != null) return false;
-            if (keyname != null ? !keyname.equals(keyStore.keyname) : keyStore.keyname != null) return false;
-            return keyPassword != null ? keyPassword.equals(keyStore.keyPassword) : keyStore.keyPassword == null;
+            public ServiceProvider and() {
+                return ServiceProvider.this;
+            }
 
-        }
+            public String getStoreFilePath() {
+                return storeFilePath;
+            }
 
-        @Override
-        public int hashCode() {
-            int result = storeFilePath != null ? storeFilePath.hashCode() : 0;
-            result = 31 * result + (password != null ? password.hashCode() : 0);
-            result = 31 * result + (keyname != null ? keyname.hashCode() : 0);
-            result = 31 * result + (keyPassword != null ? keyPassword.hashCode() : 0);
-            return result;
+            public String getPassword() {
+                return password;
+            }
+
+            public String getKeyname() {
+                return keyname;
+            }
+
+            public String getKeyPassword() {
+                return keyPassword;
+            }
+
+            @Override
+            public String toString() {
+                return "KeyStore{" +
+                        "storeFilePath='" + storeFilePath + '\'' +
+                        ", password='" + password + '\'' +
+                        ", keyname='" + keyname + '\'' +
+                        ", keyPassword='" + keyPassword + '\'' +
+                        '}';
+            }
+
+            @Override
+            public boolean equals(Object o) {
+                if (this == o) return true;
+                if (o == null || getClass() != o.getClass()) return false;
+
+                KeyStore keyStore = (KeyStore) o;
+
+                if (storeFilePath != null ? !storeFilePath.equals(keyStore.storeFilePath) : keyStore.storeFilePath != null)
+                    return false;
+                if (password != null ? !password.equals(keyStore.password) : keyStore.password != null) return false;
+                if (keyname != null ? !keyname.equals(keyStore.keyname) : keyStore.keyname != null) return false;
+                return keyPassword != null ? keyPassword.equals(keyStore.keyPassword) : keyStore.keyPassword == null;
+
+            }
+
+            @Override
+            public int hashCode() {
+                int result = storeFilePath != null ? storeFilePath.hashCode() : 0;
+                result = 31 * result + (password != null ? password.hashCode() : 0);
+                result = 31 * result + (keyname != null ? keyname.hashCode() : 0);
+                result = 31 * result + (keyPassword != null ? keyPassword.hashCode() : 0);
+                return result;
+            }
         }
     }
 
