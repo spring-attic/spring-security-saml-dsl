@@ -64,7 +64,6 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
     private ServiceProvider serviceProvider = new ServiceProvider();
 
     private WebSSOProfileOptions webSSOProfileOptions = webSSOProfileOptions();
-    private ExtendedMetadata extendedMetadata = extendedMetadata();
     private StaticBasicParserPool parserPool = staticBasicParserPool();
     private SAMLProcessor samlProcessor = samlProcessor();
     private SAMLDefaultLogger samlLogger = new SAMLDefaultLogger();
@@ -88,7 +87,8 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
     public void init(HttpSecurity http) {
 
         metadataProvider = identityProvider.metadataProvider();
-        extendedMetadataDelegate = extendedMetadataDelegate();
+        ExtendedMetadata extendedMetadata = extendedMetadata(identityProvider.discoveryEnabled);
+        extendedMetadataDelegate = extendedMetadataDelegate(extendedMetadata);
         serviceProvider.keyManager = serviceProvider.keyManager();
         cachingMetadataManager = cachingMetadataManager();
         webSSOProfile = new WebSSOProfileImpl(samlProcessor, cachingMetadataManager);
@@ -117,7 +117,7 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
         }
 
         http
-            .addFilterBefore(metadataGeneratorFilter(samlEntryPoint), ChannelProcessingFilter.class)
+            .addFilterBefore(metadataGeneratorFilter(samlEntryPoint, extendedMetadata), ChannelProcessingFilter.class)
             .addFilterAfter(samlFilter(samlEntryPoint, contextProvider), BasicAuthenticationFilter.class)
             .authenticationProvider(samlAuthenticationProvider);
     }
@@ -188,16 +188,16 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
         return parserPool;
     }
 
-    private ExtendedMetadataDelegate extendedMetadataDelegate() {
+    private ExtendedMetadataDelegate extendedMetadataDelegate(ExtendedMetadata extendedMetadata) {
         ExtendedMetadataDelegate extendedMetadataDelegate = new ExtendedMetadataDelegate(metadataProvider, extendedMetadata);
         extendedMetadataDelegate.setMetadataTrustCheck(false);
         extendedMetadataDelegate.setMetadataRequireSignature(false);
         return extendedMetadataDelegate;
     }
 
-    private ExtendedMetadata extendedMetadata() {
+    private ExtendedMetadata extendedMetadata(boolean discoveryEnabled) {
         ExtendedMetadata extendedMetadata = new ExtendedMetadata();
-        extendedMetadata.setIdpDiscoveryEnabled(true);
+        extendedMetadata.setIdpDiscoveryEnabled(discoveryEnabled);
         extendedMetadata.setSignMetadata(true);
         return extendedMetadata;
     }
@@ -241,8 +241,8 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
         return samlWebSSOProcessingFilter;
     }
 
-    private MetadataGeneratorFilter metadataGeneratorFilter(SAMLEntryPoint samlEntryPoint) {
-        MetadataGeneratorFilter metadataGeneratorFilter = new MetadataGeneratorFilter(getMetadataGenerator(samlEntryPoint));
+    private MetadataGeneratorFilter metadataGeneratorFilter(SAMLEntryPoint samlEntryPoint, ExtendedMetadata extendedMetadata) {
+        MetadataGeneratorFilter metadataGeneratorFilter = new MetadataGeneratorFilter(getMetadataGenerator(samlEntryPoint, extendedMetadata));
         metadataGeneratorFilter.setManager(cachingMetadataManager);
         return metadataGeneratorFilter;
     }
@@ -295,7 +295,7 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
         return contextProvider;
     }
 
-    private MetadataGenerator getMetadataGenerator(SAMLEntryPoint samlEntryPoint) {
+    private MetadataGenerator getMetadataGenerator(SAMLEntryPoint samlEntryPoint, ExtendedMetadata extendedMetadata) {
         MetadataGenerator metadataGenerator = new MetadataGenerator();
 
         metadataGenerator.setSamlEntryPoint(samlEntryPoint);
@@ -311,9 +311,15 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
     public class IdentityProvider {
 
         private String metadataFilePath;
+        private boolean discoveryEnabled = true;
 
         public IdentityProvider metadataFilePath(String metadataFilePath) {
             this.metadataFilePath = metadataFilePath;
+            return this;
+        }
+
+        public IdentityProvider discoveryEnabled(boolean discoveryEnabled) {
+            this.discoveryEnabled = discoveryEnabled;
             return this;
         }
 
