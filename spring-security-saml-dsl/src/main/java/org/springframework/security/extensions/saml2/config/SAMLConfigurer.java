@@ -21,6 +21,7 @@ import org.springframework.security.config.annotation.ObjectPostProcessor;
 import org.springframework.security.config.annotation.SecurityConfigurerAdapter;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.CsrfConfigurer;
 import org.springframework.security.saml.*;
 import org.springframework.security.saml.context.SAMLContextProvider;
 import org.springframework.security.saml.context.SAMLContextProviderLB;
@@ -99,19 +100,20 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
         SAMLContextProvider contextProvider = contextProvider();
         SAMLEntryPoint samlEntryPoint = samlEntryPoint(contextProvider);
 
-        // Workaround to get working with Spring Security 3.2.
-        RequestMatcher ignored = new AntPathRequestMatcher("/saml/SSO");
-        RequestMatcher notIgnored = new NegatedRequestMatcher(ignored);
-        RequestMatcher matcher = new AndRequestMatcher(new DefaultRequiresCsrfMatcher(), notIgnored);
-
         try {
             http
                 .httpBasic()
-                .authenticationEntryPoint(samlEntryPoint)
-                .and()
-                .csrf()
-                .requireCsrfProtectionMatcher(matcher);
+                .authenticationEntryPoint(samlEntryPoint);
 
+            CsrfConfigurer<HttpSecurity> csrfConfigurer = http.getConfigurer(CsrfConfigurer.class);
+            if(csrfConfigurer != null) {
+                // Workaround to get working with Spring Security 3.2.
+                RequestMatcher ignored = new AntPathRequestMatcher("/saml/SSO");
+                RequestMatcher notIgnored = new NegatedRequestMatcher(ignored);
+                RequestMatcher matcher = new AndRequestMatcher(new DefaultRequiresCsrfMatcher(), notIgnored);
+
+                csrfConfigurer.requireCsrfProtectionMatcher(matcher);
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
