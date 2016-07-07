@@ -5,6 +5,24 @@
 
 ### Gradle
 
+#### Milestone
+
+You can find the latest milestone in the [Spring Milestone repository](https://repo.spring.io/libs-milestone/org/springframework/security/extensions/spring-security-saml-dsl/) Below is an example using M3.
+
+```groovy
+repositories {
+	maven {
+		url 'https://repo.spring.io/libs-milestone'
+	}
+}
+dependencies {
+	compile 'org.springframework.security.extensions:spring-security-saml-dsl:1.0.0.M3'
+}
+```
+
+
+#### Snapshot
+
 ```groovy
 repositories {
 	maven {
@@ -18,6 +36,29 @@ dependencies {
 
 
 ### Maven
+
+#### Milestone
+
+You can find the latest milestone in the [Spring Milestone repository](https://repo.spring.io/libs-milestone/org/springframework/security/extensions/spring-security-saml-dsl/) Below is an example using M3.
+
+```xml
+<dependencies>
+	<dependency>
+		<groupId>org.springframework.security.extensions</groupId>
+		<artifactId>spring-security-saml-dsl</artifactId>
+		<version>1.0.0.M3</version>
+	</dependency>
+</dependencies>
+<repositories>
+	<repository>
+		<id>spring-snapshots</id>
+		<name>Spring Snapshots</name>
+		<url>https://repo.spring.io/libs-milestone</url>
+	</repository>
+</repositories>
+```
+
+#### Snapshot
 
 ```xml
 <dependencies>
