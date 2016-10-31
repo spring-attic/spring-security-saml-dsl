@@ -21,8 +21,12 @@
 1. Select *I'm an Okta customer adding an internal app*
 1. Check *This is an internal app that we have created*
 1. Click *Finish*
-1. Click *View Setup Instructions*
-1. Copy the xml IDP Metadata from the Optional section into a filein your project: `src/main/resources/saml/colombia-metadata.xml`
+1. Setup the metadata via url
+    1. Copy and paste the Identity Provider metadata url into the application.yml under `security.saml2.metadata-url`
+1. OR setup the metadata via xml
+    1. Click *View Setup Instructions*
+    1. Copy the xml IDP Metadata from the Optional section into a file in your project: `src/main/resources/saml/colombia-metadata.xml`
+    1. Set metadataFilePath in SecurityConfiguration to the xml file (i.e. `metadataFilePath("saml/colombia-metadata.xml")`
 
 #### Assign the test application
 1. Return to your Okta home screen and click *Admin*
