@@ -15,7 +15,7 @@
 1. Select *SAML 2.0* and click *Create*
 1. Call the app 'Colombia' and click *Next*
 1. Fill in *Single sign on URL* with `https://localhost:8443/saml/SSO`
-1. Fill in *Audience URI* with `com:example`
+1. Fill in *Audience URI* with `https://localhost:8443/saml/metadata`
 1. Your config should look like this ![okta config](okta-config-page.png)
 1. The rest of the fields can be left as they began, click *Next*
 1. Select *I'm an Okta customer adding an internal app*
