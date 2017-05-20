@@ -74,6 +74,7 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
     private CachingMetadataManager cachingMetadataManager;
     private WebSSOProfile webSSOProfile;
     private SAMLUserDetailsService samlUserDetailsService;
+    private boolean forcePrincipalAsString = false;
 
     private ObjectPostProcessor<Object> objectPostProcessor = new ObjectPostProcessor<Object>() {
         public <T> T postProcess(T object) {
@@ -130,6 +131,11 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 
     public SAMLConfigurer userDetailsService(SAMLUserDetailsService samlUserDetailsService) {
         this.samlUserDetailsService = samlUserDetailsService;
+        return this;
+    }
+
+    public SAMLConfigurer forcePrincipalAsString() {
+        this.forcePrincipalAsString = true;
         return this;
     }
 
@@ -271,7 +277,7 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 
     private SAMLAuthenticationProvider samlAuthenticationProvider() {
         SAMLAuthenticationProvider samlAuthenticationProvider = new SAMLAuthenticationProvider();
-        samlAuthenticationProvider.setForcePrincipalAsString(false);
+        samlAuthenticationProvider.setForcePrincipalAsString(forcePrincipalAsString);
         samlAuthenticationProvider.setSamlLogger(samlLogger);
         samlAuthenticationProvider.setConsumer(new WebSSOProfileConsumerImpl());
         samlAuthenticationProvider.setUserDetails(this.samlUserDetailsService);
