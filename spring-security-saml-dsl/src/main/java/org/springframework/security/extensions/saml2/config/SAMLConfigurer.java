@@ -30,6 +30,7 @@ import org.springframework.security.saml.key.KeyManager;
 import org.springframework.security.saml.log.SAMLDefaultLogger;
 import org.springframework.security.saml.metadata.*;
 import org.springframework.security.saml.processor.*;
+import org.springframework.security.saml.storage.SAMLMessageStorageFactory;
 import org.springframework.security.saml.trust.MetadataCredentialResolver;
 import org.springframework.security.saml.trust.PKIXInformationResolver;
 import org.springframework.security.saml.userdetails.SAMLUserDetailsService;
@@ -294,6 +295,10 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
         contextProvider.setPkixTrustEvaluator(pkixTrustEvaluator);
         contextProvider.setMetadataResolver(resolver);
 
+        if(serviceProvider.storageFactory != null) {
+            contextProvider.setStorageFactory(serviceProvider.storageFactory);
+        }
+
         return contextProvider;
     }
 
@@ -377,6 +382,7 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
         private String hostName;
         private String basePath;
         private String entityId;
+        private SAMLMessageStorageFactory storageFactory;
 
 
         public ServiceProvider protocol(String protocol) {
@@ -396,6 +402,11 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 
         public ServiceProvider entityId(String entityId) {
             this.entityId = entityId;
+            return this;
+        }
+
+        public ServiceProvider storageFactory(SAMLMessageStorageFactory storageFactory) {
+            this.storageFactory = storageFactory;
             return this;
         }
 
