@@ -47,7 +47,6 @@ import org.springframework.security.web.util.matcher.AndRequestMatcher;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
-import org.springframework.stereotype.Service;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.File;
@@ -63,6 +62,7 @@ import java.util.regex.Pattern;
 public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFilterChain, HttpSecurity> {
     private IdentityProvider identityProvider = new IdentityProvider();
     private ServiceProvider serviceProvider = new ServiceProvider();
+    private WebSSOProfileConsumerImpl webSSOProfileConsumer = new WebSSOProfileConsumerImpl();
 
     private WebSSOProfileOptions webSSOProfileOptions = webSSOProfileOptions();
     private StaticBasicParserPool parserPool = staticBasicParserPool();
@@ -81,6 +81,7 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
         }
     };
 
+
     private SAMLConfigurer() {
     }
 
@@ -93,7 +94,7 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
         serviceProvider.keyManager = serviceProvider.keyManager();
         cachingMetadataManager = cachingMetadataManager();
         webSSOProfile = new WebSSOProfileImpl(samlProcessor, cachingMetadataManager);
-        samlAuthenticationProvider = samlAuthenticationProvider();
+        samlAuthenticationProvider = samlAuthenticationProvider(webSSOProfileConsumer);
 
         bootstrap();
 
@@ -130,6 +131,11 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 
     public SAMLConfigurer userDetailsService(SAMLUserDetailsService samlUserDetailsService) {
         this.samlUserDetailsService = samlUserDetailsService;
+        return this;
+    }
+
+    public SAMLConfigurer webSSOProfileConsumer(WebSSOProfileConsumerImpl webSSOProfileConsumer) {
+        this.webSSOProfileConsumer = webSSOProfileConsumer;
         return this;
     }
 
@@ -269,11 +275,11 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
         return new FilterChainProxy(chains);
     }
 
-    private SAMLAuthenticationProvider samlAuthenticationProvider() {
+    private SAMLAuthenticationProvider samlAuthenticationProvider(WebSSOProfileConsumerImpl webSSOProfileConsumer) {
         SAMLAuthenticationProvider samlAuthenticationProvider = new SAMLAuthenticationProvider();
         samlAuthenticationProvider.setForcePrincipalAsString(false);
         samlAuthenticationProvider.setSamlLogger(samlLogger);
-        samlAuthenticationProvider.setConsumer(new WebSSOProfileConsumerImpl());
+        samlAuthenticationProvider.setConsumer(webSSOProfileConsumer);
         samlAuthenticationProvider.setUserDetails(this.samlUserDetailsService);
         return samlAuthenticationProvider;
     }
