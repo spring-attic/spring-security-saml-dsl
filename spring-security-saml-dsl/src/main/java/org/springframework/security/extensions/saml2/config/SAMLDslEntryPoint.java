@@ -12,56 +12,56 @@ import org.springframework.security.saml.websso.WebSSOProfile;
  @Author Jean de Klerk
 */
 public class SAMLDslEntryPoint extends org.springframework.security.saml.SAMLEntryPoint {
-    /**
-     * Metadata manager, cannot be null, must be set.
-     * It is set directly in the custom config, so can be optional here.
-     * User could override it if desired.
-     *
-     * @param metadata manager
-     */
-    @Autowired(required = false)
-    @Override
-    public void setMetadata(MetadataManager metadata) {
-        super.setMetadata(metadata);
-    }
+	/**
+	 * Metadata manager, cannot be null, must be set.
+	 * It is set directly in the custom config, so can be optional here.
+	 * User could override it if desired.
+	 *
+	 * @param metadata manager
+	 */
+	@Autowired(required = false)
+	@Override
+	public void setMetadata(MetadataManager metadata) {
+		super.setMetadata(metadata);
+	}
 
-    /**
-     * Logger for SAML events, cannot be null, must be set.
-     *
-     * @param samlLogger logger
-     *                   It is set in the custom config, so can be optional here.
-     *                   User could override it if desired.
-     */
-    @Autowired(required = false)
-    @Override
-    public void setSamlLogger(SAMLLogger samlLogger) {
-        super.setSamlLogger(samlLogger);
-    }
+	/**
+	 * Logger for SAML events, cannot be null, must be set.
+	 *
+	 * @param samlLogger logger
+	 *				   It is set in the custom config, so can be optional here.
+	 *				   User could override it if desired.
+	 */
+	@Autowired(required = false)
+	@Override
+	public void setSamlLogger(SAMLLogger samlLogger) {
+		super.setSamlLogger(samlLogger);
+	}
 
-    /**
-     * Profile for consumption of processed messages, cannot be null, must be set.
-     * It is set in the custom config, so can be optional here.
-     * User could override it if desired.
-     *
-     * @param webSSOprofile profile
-     */
-    @Autowired(required = false)
-    @Qualifier("webSSOprofile")
-    @Override
-    public void setWebSSOprofile(WebSSOProfile webSSOprofile) {
-        super.setWebSSOprofile(webSSOprofile);
-    }
+	/**
+	 * Profile for consumption of processed messages, cannot be null, must be set.
+	 * It is set in the custom config, so can be optional here.
+	 * User could override it if desired.
+	 *
+	 * @param webSSOprofile profile
+	 */
+	@Autowired(required = false)
+	@Qualifier("webSSOprofile")
+	@Override
+	public void setWebSSOprofile(WebSSOProfile webSSOprofile) {
+		super.setWebSSOprofile(webSSOprofile);
+	}
 
-    /**
-     * Sets entity responsible for populating local entity context data.
-     * It is set in the custom config, so can be optional here.
-     * User could override it if desired.
-     *
-     * @param contextProvider provider implementation
-     */
-    @Autowired(required = false)
-    @Override
-    public void setContextProvider(SAMLContextProvider contextProvider) {
-        super.setContextProvider(contextProvider);
-    }
+	/**
+	 * Sets entity responsible for populating local entity context data.
+	 * It is set in the custom config, so can be optional here.
+	 * User could override it if desired.
+	 *
+	 * @param contextProvider provider implementation
+	 */
+	@Autowired(required = false)
+	@Override
+	public void setContextProvider(SAMLContextProvider contextProvider) {
+		super.setContextProvider(contextProvider);
+	}
 }

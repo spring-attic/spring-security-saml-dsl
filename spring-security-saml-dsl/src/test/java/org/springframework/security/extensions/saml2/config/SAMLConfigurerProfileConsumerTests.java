@@ -39,24 +39,24 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 @WebAppConfiguration
 public class SAMLConfigurerProfileConsumerTests {
 
-    @Autowired
-    private WebSSOProfileConsumerImpl webSSOProfileConsumer;
+	@Autowired
+	private WebSSOProfileConsumerImpl webSSOProfileConsumer;
 
-    @Autowired
-    WebApplicationContext wac;
+	@Autowired
+	WebApplicationContext wac;
 
-    MockMvc mockMvc;
+	MockMvc mockMvc;
 
-    @Before
-    public void setup() {
-        mockMvc = MockMvcBuilders
-                .webAppContextSetup(wac)
-                .apply(springSecurity())
-                .build();
-    }
+	@Before
+	public void setup() {
+		mockMvc = MockMvcBuilders
+				.webAppContextSetup(wac)
+				.apply(springSecurity())
+				.build();
+	}
 
-    @Test
-    public void webSSOProfileConsumerIsInjectedViaDSL() throws Exception {
+	@Test
+	public void webSSOProfileConsumerIsInjectedViaDSL() throws Exception {
 		ArgumentCaptor<SAMLMessageContext> samlMessageContextCaptor = ArgumentCaptor.forClass(SAMLMessageContext.class);
 
 		when(webSSOProfileConsumer.processAuthenticationResponse(samlMessageContextCaptor.capture()))
@@ -68,7 +68,7 @@ public class SAMLConfigurerProfileConsumerTests {
 
 		mockMvc.perform(post("/saml/SSO").param("SAMLResponse", samlResponse));
 
-        verify(webSSOProfileConsumer).processAuthenticationResponse(samlMessageContextCaptor.capture());
+		verify(webSSOProfileConsumer).processAuthenticationResponse(samlMessageContextCaptor.capture());
 
 		SAMLMessageContext samlMessageContext = samlMessageContextCaptor.getValue();
 
@@ -89,10 +89,10 @@ public class SAMLConfigurerProfileConsumerTests {
 	@EnableWebSecurity
 	static class Config extends WebSecurityConfigurerAdapter {
 
-        @Bean
-        public WebSSOProfileConsumerImpl webSSOProfileConsumer() {
-            return mock(WebSSOProfileConsumerImpl.class);
-        }
+		@Bean
+		public WebSSOProfileConsumerImpl webSSOProfileConsumer() {
+			return mock(WebSSOProfileConsumerImpl.class);
+		}
 
 		@Override
 		protected void configure(HttpSecurity http) throws Exception {
@@ -105,7 +105,7 @@ public class SAMLConfigurerProfileConsumerTests {
 					.identityProvider()
 						.metadataFilePath("https://dev-547916.oktapreview.com/app/exkb5v2p0pp35JFKa0h7/sso/saml/metadata")
 						.and()
-                    .webSSOProfileConsumer(webSSOProfileConsumer())
+					.webSSOProfileConsumer(webSSOProfileConsumer())
 					.serviceProvider()
 						.keyStore()
 							.storeFilePath("saml/keystore.jks")
