@@ -34,14 +34,14 @@ import org.springframework.security.saml.trust.MetadataCredentialResolver;
 import org.springframework.security.saml.trust.PKIXInformationResolver;
 import org.springframework.security.saml.userdetails.SAMLUserDetailsService;
 import org.springframework.security.saml.util.VelocityFactory;
-import org.springframework.security.saml.websso.WebSSOProfile;
-import org.springframework.security.saml.websso.WebSSOProfileConsumerImpl;
-import org.springframework.security.saml.websso.WebSSOProfileImpl;
-import org.springframework.security.saml.websso.WebSSOProfileOptions;
+import org.springframework.security.saml.websso.*;
 import org.springframework.security.web.DefaultSecurityFilterChain;
 import org.springframework.security.web.FilterChainProxy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.channel.ChannelProcessingFilter;
+import org.springframework.security.web.authentication.logout.LogoutHandler;
+import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
+import org.springframework.security.web.authentication.logout.SimpleUrlLogoutSuccessHandler;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.security.web.util.matcher.AndRequestMatcher;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
@@ -73,6 +73,7 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 	private ExtendedMetadataDelegate extendedMetadataDelegate;
 	private CachingMetadataManager cachingMetadataManager;
 	private WebSSOProfile webSSOProfile;
+	private SingleLogoutProfile singleLogoutProfile;
 	private SAMLUserDetailsService samlUserDetailsService;
 
 	private ObjectPostProcessor<Object> objectPostProcessor = new ObjectPostProcessor<Object>() {
@@ -94,12 +95,15 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 		serviceProvider.keyManager = serviceProvider.keyManager();
 		cachingMetadataManager = cachingMetadataManager();
 		webSSOProfile = new WebSSOProfileImpl(samlProcessor, cachingMetadataManager);
+		singleLogoutProfile = singleLogoutProfile();
 		samlAuthenticationProvider = samlAuthenticationProvider(webSSOProfileConsumer);
 
 		bootstrap();
 
 		SAMLContextProvider contextProvider = contextProvider();
 		SAMLEntryPoint samlEntryPoint = samlEntryPoint(contextProvider);
+		SAMLLogoutFilter samlLogoutFilter = samlLogoutFilter(contextProvider);
+		SAMLLogoutProcessingFilter samlLogoutProcessingFilter = samlLogoutProcessingFilter(contextProvider);
 
 		try {
 			http
@@ -121,7 +125,8 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 
 		http
 			.addFilterBefore(metadataGeneratorFilter(samlEntryPoint, extendedMetadata), ChannelProcessingFilter.class)
-			.addFilterAfter(samlFilter(samlEntryPoint, contextProvider), BasicAuthenticationFilter.class)
+			.addFilterAfter(samlFilter(samlEntryPoint, samlLogoutFilter, samlLogoutProcessingFilter, contextProvider),
+					BasicAuthenticationFilter.class)
 			.authenticationProvider(samlAuthenticationProvider);
 	}
 
@@ -162,6 +167,39 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 		samlEntryPoint.setMetadata(cachingMetadataManager);
 		samlEntryPoint.setSamlLogger(samlLogger);
 		return samlEntryPoint;
+	}
+
+	private SimpleUrlLogoutSuccessHandler successLogoutHandler() {
+		SimpleUrlLogoutSuccessHandler logoutSuccessHandler = new SimpleUrlLogoutSuccessHandler();
+		logoutSuccessHandler.setDefaultTargetUrl("/");
+		return logoutSuccessHandler;
+	}
+
+	private SecurityContextLogoutHandler logoutHandler() {
+		SecurityContextLogoutHandler logoutHandler = new SecurityContextLogoutHandler();
+		logoutHandler.setInvalidateHttpSession(true);
+		logoutHandler.setClearAuthentication(true);
+		return logoutHandler;
+	}
+
+	private SAMLLogoutFilter samlLogoutFilter(SAMLContextProvider contextProvider) {
+		SAMLLogoutFilter samlLogoutFilter = new SAMLLogoutFilter(successLogoutHandler(),
+				new LogoutHandler[]{logoutHandler()},
+				new LogoutHandler[]{logoutHandler()});
+		samlLogoutFilter.setProfile(singleLogoutProfile);
+		samlLogoutFilter.setContextProvider(contextProvider);
+		samlLogoutFilter.setSamlLogger(samlLogger);
+		return samlLogoutFilter;
+	}
+
+	private SAMLLogoutProcessingFilter samlLogoutProcessingFilter(SAMLContextProvider contextProvider) {
+		SAMLLogoutProcessingFilter samlLogoutProcessingFilter =
+				new SAMLLogoutProcessingFilter(successLogoutHandler(), logoutHandler());
+		samlLogoutProcessingFilter.setLogoutProfile(singleLogoutProfile);
+		samlLogoutProcessingFilter.setContextProvider(contextProvider);
+		samlLogoutProcessingFilter.setSamlLogger(samlLogger);
+		samlLogoutProcessingFilter.setSAMLProcessor(samlProcessor);
+		return samlLogoutProcessingFilter;
 	}
 
 	private SAMLProcessor samlProcessor() {
@@ -255,10 +293,13 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 		return metadataGeneratorFilter;
 	}
 
-	private FilterChainProxy samlFilter(SAMLEntryPoint samlEntryPoint, SAMLContextProvider contextProvider) {
+	private FilterChainProxy samlFilter(SAMLEntryPoint samlEntryPoint, SAMLLogoutFilter samlLogoutFilter,
+										SAMLLogoutProcessingFilter samlLogoutProcessingFilter, SAMLContextProvider contextProvider) {
 		List<SecurityFilterChain> chains = new ArrayList<>();
 		chains.add(new DefaultSecurityFilterChain(new AntPathRequestMatcher("/saml/login/**"),
 			samlEntryPoint));
+		chains.add(new DefaultSecurityFilterChain(new AntPathRequestMatcher("/saml/logout/**"),
+			samlLogoutFilter));
 		chains.add(new DefaultSecurityFilterChain(new AntPathRequestMatcher("/saml/metadata/**"),
 			new MetadataDisplayFilter()));
 		try {
@@ -267,12 +308,21 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+		chains.add(new DefaultSecurityFilterChain(new AntPathRequestMatcher("/saml/SingleLogout/**"),
+				samlLogoutProcessingFilter));
 		SAMLDiscovery samlDiscovery = new SAMLDiscovery();
 		samlDiscovery.setMetadata(cachingMetadataManager);
 		samlDiscovery.setContextProvider(contextProvider);
 		chains.add(new DefaultSecurityFilterChain(new AntPathRequestMatcher("/saml/discovery/**"),
 			samlDiscovery));
 		return new FilterChainProxy(chains);
+	}
+
+	private SingleLogoutProfile singleLogoutProfile() {
+		SingleLogoutProfileImpl singleLogoutProfile = new SingleLogoutProfileImpl();
+		singleLogoutProfile.setMetadata(cachingMetadataManager);
+		singleLogoutProfile.setProcessor(samlProcessor);
+		return singleLogoutProfile;
 	}
 
 	private SAMLAuthenticationProvider samlAuthenticationProvider(WebSSOProfileConsumerImpl webSSOProfileConsumer) {
