@@ -16,6 +16,7 @@ import org.opensaml.xml.security.x509.CertPathPKIXTrustEvaluator;
 import org.opensaml.xml.security.x509.PKIXTrustEvaluator;
 import org.opensaml.xml.security.x509.X509KeyInfoGeneratorFactory;
 import org.springframework.core.io.DefaultResourceLoader;
+import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.security.config.annotation.ObjectPostProcessor;
 import org.springframework.security.config.annotation.SecurityConfigurerAdapter;
@@ -464,6 +465,14 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 		private KeyManager keyManager() {
 			DefaultResourceLoader loader = new DefaultResourceLoader();
 			Resource storeFile = loader.getResource(keyStore.getStoreFilePath());
+			if (keyStore.getStoreFilePath().startsWith("file://")) {
+				try {
+					storeFile = new FileSystemResource(storeFile.getFile());
+				} catch (IOException e) {
+					e.printStackTrace();
+					throw new RuntimeException("Cannot load file system resource: " + keyStore.getStoreFilePath(), e);
+				}
+			}
 			Map<String, String> passwords = new HashMap<>();
 			passwords.put(keyStore.getKeyname(), keyStore.getKeyPassword());
 			return new JKSKeyManager(storeFile, keyStore.getPassword(), passwords, keyStore.getKeyname());
