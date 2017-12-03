@@ -11,7 +11,6 @@
 1. Click on **< > Developer** in the top-left corner and switch to the Classic UI.
 
 #### Create a test application
-
 1. Click on *Admin*, then *Add Applications*
 1. Click on *Create New App*
 1. Click *Create New App*, select your platform (web, native, or SPA) and choose *SAML 2.0*
