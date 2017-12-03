@@ -2,14 +2,16 @@
 
 #### Basic setup
 1. Navigate to [http://developer.okta.com/](http://developer.okta.com/)
-1. Click on *Get Started*
+1. Click on *Sign Up*
 1. Fill in your own name and email address to register, or login if you already have 
 1. Okta will send you a confirmation email, including your temporary password and a link to your new developer Okta instance
 1. Navigate to the link in the email, and input your email address and the temporary password provided to you
 1. Fill in the form presented to complete your registration, and click on *Create My Account*
 1. You should now have an empty Okta instance with no apps, and only one user.
+1. Click on **< > Developer** in the top-left corner and switch to the Classic UI.
 
 #### Create a test application
+
 1. Click on *Admin*, then *Add Applications*
 1. Click on *Create New App*
 1. Click *Create New App*, select your platform (web, native, or SPA) and choose *SAML 2.0*
