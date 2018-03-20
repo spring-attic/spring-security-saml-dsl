@@ -1,5 +1,16 @@
 package org.springframework.security.extensions.saml2.config;
 
+import javax.servlet.http.HttpServletRequest;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Timer;
+import java.util.regex.Pattern;
+
 import org.apache.commons.httpclient.HttpClient;
 import org.opensaml.Configuration;
 import org.opensaml.PaosBootstrap;
@@ -23,19 +34,40 @@ import org.springframework.security.config.annotation.SecurityConfigurerAdapter;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.CsrfConfigurer;
-import org.springframework.security.saml.*;
+import org.springframework.security.saml.SAMLAuthenticationProvider;
+import org.springframework.security.saml.SAMLConstants;
+import org.springframework.security.saml.SAMLDiscovery;
+import org.springframework.security.saml.SAMLEntryPoint;
+import org.springframework.security.saml.SAMLLogoutFilter;
+import org.springframework.security.saml.SAMLLogoutProcessingFilter;
+import org.springframework.security.saml.SAMLProcessingFilter;
 import org.springframework.security.saml.context.SAMLContextProvider;
 import org.springframework.security.saml.context.SAMLContextProviderLB;
 import org.springframework.security.saml.key.JKSKeyManager;
 import org.springframework.security.saml.key.KeyManager;
 import org.springframework.security.saml.log.SAMLDefaultLogger;
-import org.springframework.security.saml.metadata.*;
-import org.springframework.security.saml.processor.*;
+import org.springframework.security.saml.metadata.CachingMetadataManager;
+import org.springframework.security.saml.metadata.ExtendedMetadata;
+import org.springframework.security.saml.metadata.ExtendedMetadataDelegate;
+import org.springframework.security.saml.metadata.MetadataDisplayFilter;
+import org.springframework.security.saml.metadata.MetadataGenerator;
+import org.springframework.security.saml.metadata.MetadataGeneratorFilter;
+import org.springframework.security.saml.processor.HTTPPostBinding;
+import org.springframework.security.saml.processor.HTTPRedirectDeflateBinding;
+import org.springframework.security.saml.processor.SAMLBinding;
+import org.springframework.security.saml.processor.SAMLProcessor;
+import org.springframework.security.saml.processor.SAMLProcessorImpl;
+import org.springframework.security.saml.storage.SAMLMessageStorageFactory;
 import org.springframework.security.saml.trust.MetadataCredentialResolver;
 import org.springframework.security.saml.trust.PKIXInformationResolver;
 import org.springframework.security.saml.userdetails.SAMLUserDetailsService;
 import org.springframework.security.saml.util.VelocityFactory;
-import org.springframework.security.saml.websso.*;
+import org.springframework.security.saml.websso.SingleLogoutProfile;
+import org.springframework.security.saml.websso.SingleLogoutProfileImpl;
+import org.springframework.security.saml.websso.WebSSOProfile;
+import org.springframework.security.saml.websso.WebSSOProfileConsumerImpl;
+import org.springframework.security.saml.websso.WebSSOProfileImpl;
+import org.springframework.security.saml.websso.WebSSOProfileOptions;
 import org.springframework.security.web.DefaultSecurityFilterChain;
 import org.springframework.security.web.FilterChainProxy;
 import org.springframework.security.web.SecurityFilterChain;
@@ -48,12 +80,6 @@ import org.springframework.security.web.util.matcher.AndRequestMatcher;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
-
-import javax.servlet.http.HttpServletRequest;
-import java.io.File;
-import java.io.IOException;
-import java.util.*;
-import java.util.regex.Pattern;
 
 /*
  Spring security configurer for okta.
@@ -351,6 +377,10 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 		contextProvider.setPkixTrustEvaluator(pkixTrustEvaluator);
 		contextProvider.setMetadataResolver(resolver);
 
+		if (serviceProvider.storageFactory != null) {
+			contextProvider.setStorageFactory(serviceProvider.storageFactory);
+		}
+
 		return contextProvider;
 	}
 
@@ -434,7 +464,7 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 		private String hostName;
 		private String basePath;
 		private String entityId;
-
+		private SAMLMessageStorageFactory storageFactory;
 
 		public ServiceProvider protocol(String protocol) {
 			this.protocol = protocol;
@@ -453,6 +483,11 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 
 		public ServiceProvider entityId(String entityId) {
 			this.entityId = entityId;
+			return this;
+		}
+
+		public ServiceProvider storageFactory(SAMLMessageStorageFactory storageFactory) {
+			this.storageFactory = storageFactory;
 			return this;
 		}
 
@@ -560,7 +595,7 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 		}
 	}
 
-	private static final class DefaultRequiresCsrfMatcher implements RequestMatcher {
+	final class DefaultRequiresCsrfMatcher implements RequestMatcher {
 		private Pattern allowedMethods = Pattern.compile("^(GET|HEAD|TRACE|OPTIONS)$");
 
 		/* (non-Javadoc)
