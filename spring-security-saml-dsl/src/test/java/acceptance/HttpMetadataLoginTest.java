@@ -1,5 +1,8 @@
 package acceptance;
 
+import java.io.IOException;
+import java.util.concurrent.TimeUnit;
+
 import com.example.ColombiaApplication;
 import helper.Credentials;
 import helper.LoginHelper;
@@ -11,22 +14,17 @@ import org.junit.runner.RunWith;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.firefox.FirefoxDriver;
-import org.springframework.boot.test.SpringApplicationConfiguration;
-import org.springframework.boot.test.WebIntegrationTest;
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.core.io.Resource;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import java.io.IOException;
-import java.util.Properties;
-import java.util.concurrent.TimeUnit;
-
+import static java.lang.Thread.sleep;
 import static org.assertj.core.api.Assertions.assertThat;
 
-@WebIntegrationTest
-@SpringApplicationConfiguration(classes = ColombiaApplication.class)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
+@ContextConfiguration(classes = ColombiaApplication.class)
 @RunWith(SpringJUnit4ClassRunner.class)
 @ActiveProfiles("http-metadata")
 @DirtiesContext(classMode= DirtiesContext.ClassMode.AFTER_CLASS)
@@ -58,11 +56,11 @@ public class HttpMetadataLoginTest {
     }
 
     @Test
-    public void canLogin() {
+    public void canLogin() throws InterruptedException {
         driver.findElement(By.name("username")).sendKeys(username);
         driver.findElement(By.name("password")).sendKeys(password);
-        driver.findElement(By.name("login")).submit();
-
+        driver.findElement(By.id("okta-signin-submit")).submit();
+        sleep(1000);
         assertThat(driver.findElement(By.tagName("body")).getText()).contains("Hello world");
     }
 }
