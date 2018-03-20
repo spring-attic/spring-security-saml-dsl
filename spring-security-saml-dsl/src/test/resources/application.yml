@@ -3,6 +3,7 @@ server:
   ssl:
     enabled: true
     key-alias: spring
+    #key-store: spring-security-saml-dsl/src/test/resources/saml/keystore.jks
     key-store: src/test/resources/saml/keystore.jks
     key-store-password: secret
 
