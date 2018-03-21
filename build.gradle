@@ -1,0 +1,38 @@
+buildscript {
+    repositories {
+        maven { url 'http://repo.spring.io/plugins-release' }
+    }
+    dependencies {
+        classpath("org.springframework.build.gradle:propdeps-plugin:0.0.7")
+        classpath group: "org.springframework.boot", name: "spring-boot-gradle-plugin", version: '1.5.10.RELEASE'
+    }
+}
+
+def coreProjects = subprojects.findAll { !it.name.contains("samples") }
+
+configure(allprojects) { project ->
+    group = "org.springframework.security.extensions"
+
+    ext {
+        springBootVersion = '1.5.10.RELEASE'
+        springSecurityVersion = '4.2.4.RELEASE'
+        springSecuritySamlVersion = '1.0.4.RELEASE'
+    }
+
+    apply plugin: 'java'
+    apply plugin: 'maven'
+    apply plugin: 'propdeps'
+
+
+    sourceCompatibility = 1.8
+    targetCompatibility = 1.8
+
+    repositories {
+        mavenCentral()
+        maven { url 'https://build.shibboleth.net/nexus/content/repositories/releases/' }
+        maven { url 'http://repository.mulesoft.org/releases/'}
+    }
+}
+
+
+

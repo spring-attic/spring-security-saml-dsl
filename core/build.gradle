@@ -1,35 +1,8 @@
-buildscript {
-    repositories {
-        maven { url 'http://repo.spring.io/plugins-release' }
-    }
-    dependencies {
-        classpath 'org.springframework.build.gradle:propdeps-plugin:0.0.7'
-    }
-}
-
-apply plugin: 'java'
-apply plugin: 'maven'
-apply plugin: 'propdeps'
-
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
-
-
-repositories {
-    mavenCentral()
-    maven { url 'https://build.shibboleth.net/nexus/content/repositories/releases/' }
-    maven { url 'http://repository.mulesoft.org/releases/'}
-}
-
 dependencies {
-    ext {
-        springBootVersion = '1.5.10.RELEASE'
-        springVersion = '4.2.4.RELEASE'
-    }
 
     compile(
-        "org.springframework.security:spring-security-web:$springVersion",
-        "org.springframework.security:spring-security-config:$springVersion",
+        "org.springframework.security:spring-security-web:$springSecurityVersion",
+        "org.springframework.security:spring-security-config:$springSecurityVersion",
         'org.springframework.security.extensions:spring-security-saml2-core:1.0.4.RELEASE',
     )
 
@@ -39,7 +12,7 @@ dependencies {
 
     testCompile(
 		"org.springframework.boot:spring-boot-starter-test:$springBootVersion",
-		"org.springframework.security:spring-security-test:$springVersion",
+		"org.springframework.security:spring-security-test:$springSecurityVersion",
 		'org.assertj:assertj-core:3.3.0',
 		'org.seleniumhq.selenium:selenium-java:3.11.0',
 		"org.springframework.boot:spring-boot-starter-thymeleaf:$springBootVersion",

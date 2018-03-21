@@ -1,0 +1,97 @@
+apply plugin: "propdeps-maven"
+
+install {
+	repositories.mavenInstaller {
+		customizePom(pom, project)
+	}
+}
+
+task generatePom {
+	group = 'Build'
+	description = 'Generates a Maven pom.xml'
+
+	ext.generatedPomFileName = "pom.xml"
+	onlyIf { install.enabled }
+
+	inputs.files(fileTree(project.rootProject.rootDir).include("**/*.gradle").files)
+	inputs.files(new File(project.rootProject.rootDir, Project.GRADLE_PROPERTIES))
+	outputs.files(generatedPomFileName)
+
+	doLast() {
+		def p = pom {}
+		customizePom(p, project)
+		p.writeTo(generatedPomFileName)
+	}
+}
+
+build.dependsOn generatePom
+
+def customizePom(pom, gradleProject) {
+	pom.whenConfigured { generatedPom ->
+
+		// sort to make pom dependencies order consistent to ease comparison of older poms
+		generatedPom.dependencies = generatedPom.dependencies.sort { dep ->
+			"$dep.scope:$dep.groupId:$dep.artifactId"
+		}
+
+		// add all items necessary for maven central publication
+		generatedPom.project {
+			name = gradleProject.description
+			description = gradleProject.description
+			url = "https://github.com/spring-projects/spring-security-saml-dsl"
+			organization {
+				name = "Pivotal Software Inc"
+				url = "https://github.com/spring-projects/spring-security-saml-dsl"
+			}
+			licenses {
+				license {
+					name "The Apache Software License, Version 2.0"
+					url "http://www.apache.org/licenses/LICENSE-2.0.txt"
+					distribution "repo"
+				}
+			}
+			scm {
+				url = "https://github.com/spring-projects/spring-security-saml-dsl"
+				connection = "scm:git:git://github.com/spring-projects/spring-security-saml-dsl"
+				developerConnection = "scm:git:git://github.com/spring-projects/spring-security-saml-dsl"
+			}
+			developers {
+				developer {
+					id = "fhanik"
+					name = "Filip Hanik"
+					email = "fhanik at pivotal.io"
+					timezone = "+2"
+				}
+			}
+			contributors {
+				contributor {
+					name = "Jean de Klerk"
+				}
+				contributor {
+					name = "Rob Winch"
+				}
+				contributor {
+					name = "Mark Douglass"
+				}
+				contributor {
+					name = "Travis Tomsu"
+				}
+				contributor {
+					name = "Matt Raible"
+				}
+			}
+			issueManagement {
+				system = "jira"
+				url = "http://jira.springsource.org/browse/SES"
+			}
+			mailingLists {
+				mailingList {
+					name = "Spring Security SAML Forum"
+					post = "http://stackoverflow.com/questions/tagged/spring-security"
+					archive = "http://stackoverflow.com/questions/tagged/spring-security"
+				}
+			}
+		}
+	}
+}
+

@@ -1,2 +1,8 @@
-include 'spring-security-saml-dsl'
+include 'core'
 include 'samples/spring-security-saml-dsl-sample'
+
+rootProject.name = "spring-security-saml-dsl"
+
+rootProject.children.each { p ->
+    p.name = "spring-security-saml-dsl-${p.name}"
+}
