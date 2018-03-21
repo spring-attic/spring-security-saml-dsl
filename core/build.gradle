@@ -1,3 +1,5 @@
+description = "Spring Security SAML DSL Library"
+
 dependencies {
 
     compile(
