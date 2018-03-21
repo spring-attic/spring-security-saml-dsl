@@ -25,7 +25,7 @@ import static org.hamcrest.Matchers.equalTo;
 @ContextConfiguration(classes = ColombiaApplication.class)
 @RunWith(SpringJUnit4ClassRunner.class)
 @DirtiesContext(classMode= DirtiesContext.ClassMode.AFTER_CLASS)
-public class IntegrationTest {
+public abstract class IntegrationTest {
 
 	@ClassRule
 	public static IntegrationTestEnabled integrationTestEnabled = new IntegrationTestEnabled();
