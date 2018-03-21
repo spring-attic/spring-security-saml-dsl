@@ -13,7 +13,9 @@ def coreProjects = subprojects.findAll { !it.name.contains("samples") }
 configure(allprojects) { project ->
     group = "org.springframework.security.extensions"
 
+
     ext {
+        gradleScriptDir = "${rootProject.projectDir}/gradle"
         springBootVersion = '1.5.10.RELEASE'
         springSecurityVersion = '4.2.4.RELEASE'
         springSecuritySamlVersion = '1.0.4.RELEASE'
@@ -32,6 +34,10 @@ configure(allprojects) { project ->
         maven { url 'https://build.shibboleth.net/nexus/content/repositories/releases/' }
         maven { url 'http://repository.mulesoft.org/releases/'}
     }
+}
+
+configure(subprojects) { subproject ->
+    apply from: "${gradleScriptDir}/publish-maven.gradle"
 }
 
 
