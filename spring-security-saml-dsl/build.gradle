@@ -41,14 +41,20 @@ dependencies {
 		"org.springframework.boot:spring-boot-starter-test:$springBootVersion",
 		"org.springframework.security:spring-security-test:$springVersion",
 		'org.assertj:assertj-core:3.3.0',
-		'org.seleniumhq.selenium:selenium-java:2.52.0',
+		'org.seleniumhq.selenium:selenium-java:3.11.0',
 		"org.springframework.boot:spring-boot-starter-thymeleaf:$springBootVersion",
 		"org.springframework.boot:spring-boot-starter-web:$springBootVersion",
-		"org.springframework.boot:spring-boot-starter-jetty:$springBootVersion",
+		"org.springframework.boot:spring-boot-starter-tomcat:$springBootVersion",
 	)
 
     configurations {
-        compile.exclude module: 'spring-boot-starter-tomcat'
+        compile.exclude module: 'spring-boot-starter-jetty'
+    }
+}
+
+test {
+    testLogging {
+        showStandardStreams = true
     }
 }
 

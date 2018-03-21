@@ -1,5 +1,25 @@
+env:
+  global:
+  - secure: pQ4obfUOvjERJwAbkRczNMEUbYTunOFAtXjxC5iCJ3kiO+HVBdt3gfQRHYOjZgLzN0AM699HZkE5VbKRs/cM7kopk0YR17QxL456CuC/MQjaAgc301Fyt/rV3EBqgTzyyzyARvaPvGtlM0dFkSv2B+556vCL8R+pOSGqHD6U6aNKKTHbwojvM3tWykswAb6oYyu/wlUOxiEDsvuj5HhviTQRW9exnSiu+14xoBXFBE4lJtqHTooCCY7wYq3gq5pl6gCD6MYAxrAsbpkIUH6GkJs3VgSUbMFLx78G7oyA4Ji9eM/+w/bmLtF2DFiquEMsf7TUKSoFdBEXBk5G1N5+rUmEdefWjFWfhFbVSWcNk9MhgDAWcd/pVKTsonMdxicKH71ZHawKLTas1r6gPDIWr01NbeyDMmqfGmxgV9jGS9T1nmGQVCD4Db5GyurLDccTkNerBEatJLczFHLM0t/fVq7ASLF/0ggD/V/mPNze8UR/QuqUEJIsuKzgqAlXG7JkjJXoJI5UfepautGRC9KTS305uq2HY4MiyLKZsTyjWZ7rQvSQHnKwOuh9EUPydQcJvJhC345tVLI6khiDSbOkSZeTekM/71SaB+OIsKFJmp3S1HQkTXo/VpucSeS+XfBK4MldQ5P+Qh2XzzVUsi46NYX4RCbmsYLw8BN/fmLzt/w=
+  - secure: hIo1qv1KhN33zQLQdcd6drGSjIPEvBQptU9zcib0C6Fn2X458a14fvd74BpaplQqCGcKQI/W7565IeS7gKx2AeCG0xUHkw8738cd0w+CrV75hn4QdenGSSQZomal/DrWYKPAEZRZqqjzSee02p1URRN1nz3KoRGXxW1ZQxzr/EhgztKUz/NFAo7xuze+dyN10lK0xhTXommpPvmzMgRetS2xrW7T5HkjlXWR6ia0q57Vplklm/aG0qtu0skZoyRnV6BpEjD8fETT0OyAuPFRPVlnb1rrPedbZR7QdvvP21xztw2F905vml/qBP3Rc/wVoLxydOU695g1GMaJo4dzwj/LDB6p9Lp8n6KLm1sU0eM2YxGxi27mk6vSKCCWsRjZAZJjIk56mJhsRIg9DTR3W7jSCrui3whEZVjGOpH4hcmsgbt3uVfGjZqLjzJRaP6U0bUNk033Ogkd8IzUOoVVyhLwb8yt9cU7d7g4sYS9vmEvat72k/JCZLOlGLEpg9q7wkIBeLPHrpFQAYSu+TzLyqcjS1lOT+PaEIV/AaiKFXgkT/2c2z+M12WKOziOhD+PkWjO+JGGNEqGyGNF8EESwwOD0sa1AwRnFqZ3iaTyqzVFF1Mj7bZO+pzbYegl679IlRDPysf6ilZY5AH7eZwA1cvMA4b/csFK9jCG+mD8bTY=
+
 language: java
+
 jdk:
-  - oraclejdk8
+- oraclejdk8
+
+addons:
+  firefox: '59.0.1'
+
+before_script:
+- export DISPLAY=:99.0
+- sh -e /etc/init.d/xvfb start
+- sleep 3
+- wget https://github.com/mozilla/geckodriver/releases/download/v0.20.0/geckodriver-v0.20.0-linux64.tar.gz
+- mkdir geckodriver
+- tar -xzf geckodriver-v0.20.0-linux64.tar.gz -C geckodriver
+- export PATH=$PATH:$PWD/geckodriver
+
 script:
-  - ./gradlew assemble
+- "./gradlew assemble test"
+

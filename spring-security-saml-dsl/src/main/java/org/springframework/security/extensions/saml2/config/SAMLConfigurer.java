@@ -102,7 +102,7 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 	private WebSSOProfile webSSOProfile;
 	private SingleLogoutProfile singleLogoutProfile;
 	private SAMLUserDetailsService samlUserDetailsService;
-    private boolean forcePrincipalAsString = false;
+	private boolean forcePrincipalAsString = false;
 
 	private ObjectPostProcessor<Object> objectPostProcessor = new ObjectPostProcessor<Object>() {
 		public <T> T postProcess(T object) {
@@ -167,10 +167,10 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 		return this;
 	}
 
-    public SAMLConfigurer forcePrincipalAsString() {
-        this.forcePrincipalAsString = true;
-        return this;
-    }
+	public SAMLConfigurer forcePrincipalAsString() {
+		this.forcePrincipalAsString = true;
+		return this;
+	}
 
 	public SAMLConfigurer webSSOProfileConsumer(WebSSOProfileConsumerImpl webSSOProfileConsumer) {
 		this.webSSOProfileConsumer = webSSOProfileConsumer;
