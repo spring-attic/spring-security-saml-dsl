@@ -61,6 +61,7 @@ public class HttpMetadataLoginTest {
         driver.findElement(By.name("password")).sendKeys(password);
         driver.findElement(By.id("okta-signin-submit")).submit();
         sleep(1000);
+        System.err.println("FILIP:"+driver.findElement(By.tagName("body")));
         assertThat(driver.findElement(By.tagName("body")).getText()).contains("Hello world");
     }
 }
