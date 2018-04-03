@@ -44,23 +44,30 @@ public class SAMLConfigurerTests {
 	@Test
 	public void protectedUrlRedirectsToDiscovery() throws Exception {
 		mockMvc.perform(get("/protected/"))
-			.andExpect(status().is3xxRedirection())
-			.andExpect(redirectedUrl("https://localhost:8443/saml/discovery?entityID=https%3A%2F%2Flocalhost%3A8443%2Fsaml%2Fmetadata&returnIDParam=idp"));
+				.andExpect(status().is3xxRedirection())
+				.andExpect(redirectedUrl("https://localhost:8443/saml/discovery?entityID=https%3A%2F%2Flocalhost%3A8443%2Fsaml%2Fmetadata&returnIDParam=idp"));
 	}
 
 	@Test
 	public void discoveryRedirectsLogin() throws Exception {
 		mockMvc.perform(get("/saml/discovery").param("entityID","https://localhost:8443/saml/metadata").param("returnIDParam","idp"))
-			.andExpect(status().is3xxRedirection())
-			.andExpect(redirectedUrl("https://localhost:8443/saml/login?disco=true&idp=http%3A%2F%2Fwww.okta.com%2Fexk5id72igJRNtH5M0h7"));
+				.andExpect(status().is3xxRedirection())
+				.andExpect(redirectedUrl("https://localhost:8443/saml/login?disco=true&idp=http%3A%2F%2Fwww.okta.com%2Fexk5id72igJRNtH5M0h7"));
 	}
 
 	@Test
 	public void loginRendersSAMLRequest() throws Exception {
 		mockMvc.perform(get("/saml/login").param("disco", "true").param("idp","http://www.okta.com/exk5id72igJRNtH5M0h7"))
-			.andExpect(status().isOk())
-			.andExpect(content().string(containsString("<input type=\"hidden\" name=\"SAMLRequest\" value=\"")));
+				.andExpect(status().isOk())
+				.andExpect(content().string(containsString("<input type=\"hidden\" name=\"SAMLRequest\" value=\"")));
 
+	}
+
+	@Test
+	public void renderMetadata() throws Exception {
+		mockMvc.perform(get("/saml/metadata"))
+				.andExpect(status().isOk())
+				.andExpect(content().string(containsString("<md:EntityDescriptor xmlns:md=\"urn:oasis:names:tc:SAML:2.0:metadata\"")));
 	}
 
 
@@ -71,24 +78,24 @@ public class SAMLConfigurerTests {
 		@Override
 		protected void configure(HttpSecurity http) throws Exception {
 			http
-				.authorizeRequests()
+					.authorizeRequests()
 					.antMatchers("/saml/**").permitAll()
 					.anyRequest().authenticated()
 					.and()
-				.apply(saml())
+					.apply(saml())
 					.identityProvider()
-						.metadataFilePath("https://dev-348145.oktapreview.com/app/exk5id72igJRNtH5M0h7/sso/saml/metadata")
-						.and()
+					.metadataFilePath("https://dev-348145.oktapreview.com/app/exk5id72igJRNtH5M0h7/sso/saml/metadata")
+					.and()
 					.serviceProvider()
-						.keyStore()
-							.storeFilePath("saml/keystore.jks")
-							.password("secret")
-							.keyname("spring")
-							.keyPassword("secret")
-							.and()
-						.protocol("https")
-						.hostname("localhost:8443")
-						.basePath("/");
+					.keyStore()
+					.storeFilePath("saml/keystore.jks")
+					.password("secret")
+					.keyname("spring")
+					.keyPassword("secret")
+					.and()
+					.protocol("https")
+					.hostname("localhost:8443")
+					.basePath("/");
 		}
 	}
 }
