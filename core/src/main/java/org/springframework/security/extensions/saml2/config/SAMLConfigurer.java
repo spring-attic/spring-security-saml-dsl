@@ -334,7 +334,7 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 		chains.add(new DefaultSecurityFilterChain(new AntPathRequestMatcher("/saml/logout/**"),
 			samlLogoutFilter));
 		chains.add(new DefaultSecurityFilterChain(new AntPathRequestMatcher("/saml/metadata/**"),
-			new MetadataDisplayFilter()));
+			metadataDisplayFilter(contextProvider)));
 		try {
 			chains.add(new DefaultSecurityFilterChain(new AntPathRequestMatcher("/saml/SSO/**"),
 				samlWebSSOProcessingFilter(samlAuthenticationProvider, contextProvider, samlProcessor)));
@@ -460,6 +460,14 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 		}
 
 		public SAMLConfigurer and () { return SAMLConfigurer.this; }
+	}
+
+	private MetadataDisplayFilter metadataDisplayFilter(SAMLContextProvider contextProvider) {
+		MetadataDisplayFilter metadataDisplayFilter = new MetadataDisplayFilter();
+		metadataDisplayFilter.setContextProvider(contextProvider);
+		metadataDisplayFilter.setKeyManager(serviceProvider.keyManager);
+		metadataDisplayFilter.setManager(cachingMetadataManager);
+		return metadataDisplayFilter;
 	}
 
 	public class ServiceProvider {

@@ -63,6 +63,13 @@ public class SAMLConfigurerTests {
 
 	}
 
+	@Test
+	public void renderMetadata() throws Exception {
+		mockMvc.perform(get("/saml/metadata"))
+				.andExpect(status().isOk())
+				.andExpect(content().string(containsString("<md:EntityDescriptor xmlns:md=\"urn:oasis:names:tc:SAML:2.0:metadata\"")));
+	}
+
 
 	@Configuration
 	@EnableWebSecurity
