@@ -86,7 +86,7 @@ import org.springframework.security.web.util.matcher.RequestMatcher;
  @Author Mark Douglass
  @Author Jean de Klerk
 */
-public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFilterChain, HttpSecurity> {
+final public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFilterChain, HttpSecurity> {
 	private IdentityProvider identityProvider = new IdentityProvider();
 	private ServiceProvider serviceProvider = new ServiceProvider();
 	private WebSSOProfileConsumerImpl webSSOProfileConsumer = new WebSSOProfileConsumerImpl();
