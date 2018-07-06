@@ -43,9 +43,6 @@ public class SAMLConfigurerAuthnContextTests {
 	@Autowired
 	WebApplicationContext wac;
 
-	@Autowired
-	AuthenticationFailureHandler authenticationFailureHandler;
-
 	MockMvc mockMvc;
 
 	@Before
