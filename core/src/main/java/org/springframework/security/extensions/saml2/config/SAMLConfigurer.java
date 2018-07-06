@@ -94,6 +94,7 @@ import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestHeaderRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
+import org.springframework.util.Assert;
 
 /*
  Spring security configurer for okta.
@@ -123,7 +124,7 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 	private boolean forcePrincipalAsString = false;
 	private AuthenticationSuccessHandler successHandler;
 	private AuthenticationFailureHandler failureHandler;
-	private LogoutSuccessHandler logoutSuccessHandler;
+	private LogoutSuccessHandler logoutSuccessHandler = defaultLogoutSuccessHandler();
 	private ApplicationEventPublisher applicationEventPublisher;
 	private AuthenticationEntryPoint xmlHttpRequestedWithEntryPoint = new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED);
 	private ObjectPostProcessor<Object> objectPostProcessor = new ObjectPostProcessor<Object>() {
@@ -211,6 +212,7 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 	}
 
 	public SAMLConfigurer logoutHandler(LogoutSuccessHandler logoutSuccessHandler) {
+		Assert.notNull(logoutSuccessHandler,"LogoutSuccessHandler must not be null");
 		this.logoutSuccessHandler = logoutSuccessHandler;
 		return this;
 	}
@@ -261,15 +263,6 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 		return samlEntryPoint;
 	}
 
-	private LogoutSuccessHandler successLogoutHandler() {
-		if (this.logoutSuccessHandler != null) {
-			return this.logoutSuccessHandler;
-		}
-		SimpleUrlLogoutSuccessHandler logoutSuccessHandler = new SimpleUrlLogoutSuccessHandler();
-		logoutSuccessHandler.setDefaultTargetUrl("/");
-		return logoutSuccessHandler;
-	}
-
 	private SecurityContextLogoutHandler logoutHandler() {
 		SecurityContextLogoutHandler logoutHandler = new SecurityContextLogoutHandler();
 		logoutHandler.setInvalidateHttpSession(true);
@@ -278,7 +271,7 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 	}
 
 	private SAMLLogoutFilter samlLogoutFilter(SAMLContextProvider contextProvider) {
-		SAMLLogoutFilter samlLogoutFilter = new SAMLLogoutFilter(successLogoutHandler(),
+		SAMLLogoutFilter samlLogoutFilter = new SAMLLogoutFilter(this.logoutSuccessHandler,
 				new LogoutHandler[]{logoutHandler()},
 				new LogoutHandler[]{logoutHandler()});
 		samlLogoutFilter.setProfile(singleLogoutProfile);
@@ -289,7 +282,7 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 
 	private SAMLLogoutProcessingFilter samlLogoutProcessingFilter(SAMLContextProvider contextProvider) {
 		SAMLLogoutProcessingFilter samlLogoutProcessingFilter =
-				new SAMLLogoutProcessingFilter(successLogoutHandler(), logoutHandler());
+				new SAMLLogoutProcessingFilter(this.logoutSuccessHandler, logoutHandler());
 		samlLogoutProcessingFilter.setLogoutProfile(singleLogoutProfile);
 		samlLogoutProcessingFilter.setContextProvider(contextProvider);
 		samlLogoutProcessingFilter.setSamlLogger(samlLogger);
@@ -444,6 +437,7 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 		samlAuthenticationProvider.setSamlLogger(samlLogger);
 		samlAuthenticationProvider.setConsumer(webSSOProfileConsumer);
 		samlAuthenticationProvider.setUserDetails(this.samlUserDetailsService);
+		samlAuthenticationProvider.setExcludeCredential(serviceProvider.excludeCredential);
 		return samlAuthenticationProvider;
 	}
 
@@ -481,6 +475,12 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 		metadataGenerator.setExtendedMetadata(extendedMetadata);
 
 		return metadataGenerator;
+	}
+
+	private SimpleUrlLogoutSuccessHandler defaultLogoutSuccessHandler(){
+		SimpleUrlLogoutSuccessHandler logoutSuccessHandler = new SimpleUrlLogoutSuccessHandler();
+		logoutSuccessHandler.setDefaultTargetUrl("/");
+		return logoutSuccessHandler;
 	}
 
 	public class IdentityProvider {
@@ -553,6 +553,7 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 		private String basePath;
 		private String entityId;
 		private SAMLMessageStorageFactory storageFactory;
+		private boolean excludeCredential = false;
 
 		public ServiceProvider protocol(String protocol) {
 			this.protocol = protocol;
@@ -576,6 +577,11 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 
 		public ServiceProvider storageFactory(SAMLMessageStorageFactory storageFactory) {
 			this.storageFactory = storageFactory;
+			return this;
+		}
+
+		public ServiceProvider excludeCredential(boolean excludeCredential) {
+			this.excludeCredential = excludeCredential;
 			return this;
 		}
 
