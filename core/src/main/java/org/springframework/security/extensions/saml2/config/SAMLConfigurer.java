@@ -110,7 +110,7 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 	private ServiceProvider serviceProvider = new ServiceProvider();
 	private WebSSOProfileConsumerImpl webSSOProfileConsumer = new WebSSOProfileConsumerImpl();
 
-	private WebSSOProfileOptions webSSOProfileOptions = webSSOProfileOptions();
+	private WebSSOProfileOptions webSSOProfileOptions;
 	private StaticBasicParserPool parserPool = staticBasicParserPool();
 	private SAMLProcessor samlProcessor = samlProcessor();
 	private SAMLDefaultLogger samlLogger = new SAMLDefaultLogger();
@@ -127,6 +127,7 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 	private LogoutSuccessHandler logoutSuccessHandler = defaultLogoutSuccessHandler();
 	private ApplicationEventPublisher applicationEventPublisher;
 	private AuthenticationEntryPoint xmlHttpRequestedWithEntryPoint = new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED);
+	private Collection<String> defaultAuthnContexts;
 	private ObjectPostProcessor<Object> objectPostProcessor = new ObjectPostProcessor<Object>() {
 		public <T> T postProcess(T object) {
 			return object;
@@ -139,7 +140,7 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 
 	@Override
 	public void init(HttpSecurity http) {
-
+		webSSOProfileOptions = webSSOProfileOptions();
 		metadataProvider = identityProvider.metadataProvider();
 		ExtendedMetadata extendedMetadata = extendedMetadata(identityProvider.discoveryEnabled);
 		extendedMetadataDelegate = extendedMetadataDelegate(extendedMetadata);
@@ -224,6 +225,11 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 
 	public SAMLConfigurer xmlHttpRequestedWithEntryPoint(AuthenticationEntryPoint xmlHttpRequestedWithEntryPoint) {
 		this.xmlHttpRequestedWithEntryPoint = xmlHttpRequestedWithEntryPoint;
+		return this;
+	}
+
+	public SAMLConfigurer defaultAuthnContexts(Collection<String> defaultAuthnContexts) {
+		this.defaultAuthnContexts = defaultAuthnContexts;
 		return this;
 	}
 
@@ -339,6 +345,9 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 	private WebSSOProfileOptions webSSOProfileOptions() {
 		WebSSOProfileOptions webSSOProfileOptions = new WebSSOProfileOptions();
 		webSSOProfileOptions.setIncludeScoping(false);
+		if (this.defaultAuthnContexts != null && !this.defaultAuthnContexts.isEmpty()) {
+			webSSOProfileOptions.setAuthnContexts(defaultAuthnContexts);
+		}
 		return webSSOProfileOptions;
 	}
 
