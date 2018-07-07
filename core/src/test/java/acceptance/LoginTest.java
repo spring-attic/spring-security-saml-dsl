@@ -25,9 +25,6 @@ public class LoginTest extends IntegrationTest {
 	@Autowired
 	private AuthenticationSuccessHandler authenticationSuccessHandler;
 
-	@Autowired
-	private AuthenticationEventListener authenticationEventListener;
-
 	@Test
 	public void canLogin() throws IOException, ServletException {
 		driver.findElement(By.name("username")).sendKeys(username);
@@ -37,14 +34,14 @@ public class LoginTest extends IntegrationTest {
 		await().atMost(5, SECONDS)
 				.untilAsserted(() -> assertThat(driver.findElement(By.tagName("body")).getText()).contains("Hello world"));
 
-		verify(this.authenticationSuccessHandler, times(1))
+		verify(authenticationSuccessHandler, times(1))
 				.onAuthenticationSuccess(any(), any(), any());
 
-		assertThat(this.authenticationEventListener.getReceivedEvents())
+		assertThat(authenticationEventListener.getReceivedEvents())
 				.filteredOn(e -> e instanceof InteractiveAuthenticationSuccessEvent)
 				.hasSize(1);
 
-		assertThat(this.authenticationEventListener.getReceivedEvents())
+		assertThat(authenticationEventListener.getReceivedEvents())
 				.filteredOn(e -> e instanceof AuthenticationSuccessEvent)
 				.hasSize(1);
 	}

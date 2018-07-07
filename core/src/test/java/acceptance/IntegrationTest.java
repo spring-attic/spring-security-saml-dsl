@@ -1,5 +1,6 @@
 package acceptance;
 
+import com.example.AuthenticationEventListener;
 import com.example.ColombiaApplication;
 import helper.Credentials;
 import helper.LoginHelper;
@@ -10,6 +11,8 @@ import org.junit.runner.RunWith;
 import org.junit.runners.model.Statement;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.firefox.FirefoxDriver;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
@@ -26,6 +29,9 @@ import static org.hamcrest.Matchers.equalTo;
 @RunWith(SpringJUnit4ClassRunner.class)
 @DirtiesContext(classMode= DirtiesContext.ClassMode.AFTER_CLASS)
 public abstract class IntegrationTest {
+
+	@Autowired
+	AuthenticationEventListener authenticationEventListener;
 
 	@ClassRule
 	public static IntegrationTestEnabled integrationTestEnabled = new IntegrationTestEnabled();
@@ -57,6 +63,7 @@ public abstract class IntegrationTest {
 	@After
 	public void teardown() {
 		driver.close();
+		authenticationEventListener.clear();
 	}
 
 	public static class IntegrationTestEnabled implements TestRule {
