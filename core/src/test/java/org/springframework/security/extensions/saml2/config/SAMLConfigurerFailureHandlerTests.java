@@ -29,7 +29,6 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
-import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
@@ -41,7 +40,7 @@ import org.springframework.web.context.WebApplicationContext;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration
 @WebAppConfiguration
-public class SAMLConfigurerCustomizationTests {
+public class SAMLConfigurerFailureHandlerTests {
 
 	@Autowired
 	WebApplicationContext wac;
@@ -87,17 +86,11 @@ public class SAMLConfigurerCustomizationTests {
 	@EnableWebSecurity
 	static class Config extends WebSecurityConfigurerAdapter {
 
-		private final ApplicationEventPublisher applicationEventPublisher;
-
-		Config(ApplicationEventPublisher applicationEventPublisher) {
-			this.applicationEventPublisher = applicationEventPublisher;
-		}
+		@Autowired
+		private ApplicationEventPublisher applicationEventPublisher;
 
 		@MockBean
 		AuthenticationFailureHandler authenticationFailureHandler;
-
-		@MockBean
-		AuthenticationSuccessHandler authenticationSuccessHandler;
 
 		@Override
 		protected void configure(HttpSecurity http) throws Exception {
@@ -109,7 +102,6 @@ public class SAMLConfigurerCustomizationTests {
 					.apply(saml())
 					.applicationEventPublisher(this.applicationEventPublisher)
 					.failureHandler(this.authenticationFailureHandler)
-					.successHandler(this.authenticationSuccessHandler)
 					.identityProvider()
 					.metadataFilePath("https://dev-348145.oktapreview.com/app/exk5id72igJRNtH5M0h7/sso/saml/metadata")
 					.and()
