@@ -34,7 +34,7 @@ public class LoginTest extends IntegrationTest {
 		doLogin();
 
 		await().atMost(5, SECONDS)
-				.untilAsserted(() -> assertThat(driver.findElement(By.tagName("body")).getText()).contains("Hello world"));
+				.untilAsserted(this::indexPageHasBeenLoaded);
 
 		ArgumentCaptor<Authentication> argumentCaptor = ArgumentCaptor.forClass(Authentication.class);
 
