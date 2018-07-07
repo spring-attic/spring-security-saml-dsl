@@ -12,6 +12,8 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
+import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
+import org.springframework.security.web.authentication.logout.SimpleUrlLogoutSuccessHandler;
 
 import static org.springframework.security.extensions.saml2.config.SAMLConfigurer.saml;
 
@@ -40,6 +42,7 @@ class SecurityConfiguration extends WebSecurityConfigurerAdapter {
                     .metadataFilePath(metadataPath)
                     .and()
                 .serviceProvider()
+                .excludeCredential(true)
                 .keyStore()
                     .storeFilePath("saml/keystore.jks")
                     .password("secret")
@@ -52,7 +55,7 @@ class SecurityConfiguration extends WebSecurityConfigurerAdapter {
                 .entityId("com:example")
                 .and()
                 .successHandler(this.authenticationSuccessHandler)
-                .failureHandler(this.authenticationFailureHandler)
+                .logoutHandler(logoutSuccessHandler())
                 .applicationEventPublisher(this.applicationEventPublisher);
 
         http.apply(securityConfigurerAdapter);
@@ -66,6 +69,15 @@ class SecurityConfiguration extends WebSecurityConfigurerAdapter {
             .antMatchers("/saml/**").permitAll()
             .antMatchers("/health").permitAll()
             .antMatchers("/error").permitAll()
+            .antMatchers("/logged-out.html").permitAll()
             .anyRequest().authenticated();
     }
+
+    private LogoutSuccessHandler logoutSuccessHandler() {
+        SimpleUrlLogoutSuccessHandler simpleUrlLogoutSuccessHandler = new SimpleUrlLogoutSuccessHandler();
+        simpleUrlLogoutSuccessHandler.setAlwaysUseDefaultTargetUrl(true);
+        simpleUrlLogoutSuccessHandler.setDefaultTargetUrl("/logged-out.html");
+        return simpleUrlLogoutSuccessHandler;
+    }
+
 }
