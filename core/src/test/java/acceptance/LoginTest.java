@@ -33,8 +33,7 @@ public class LoginTest extends IntegrationTest {
 	public void canLogin() throws IOException, ServletException {
 		doLogin();
 
-		await().atMost(5, SECONDS)
-				.untilAsserted(this::indexPageHasBeenLoaded);
+		await().atMost(5, SECONDS).untilAsserted(this::indexPageHasBeenLoaded);
 
 		ArgumentCaptor<Authentication> argumentCaptor = ArgumentCaptor.forClass(Authentication.class);
 
