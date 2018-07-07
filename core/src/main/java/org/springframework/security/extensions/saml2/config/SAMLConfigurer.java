@@ -166,7 +166,7 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 			CsrfConfigurer<HttpSecurity> csrfConfigurer = http.getConfigurer(CsrfConfigurer.class);
 			if (csrfConfigurer != null) {
 				// Workaround to get working with Spring Security 3.2.
-				RequestMatcher ignored = new AntPathRequestMatcher("/saml/SSO");
+				RequestMatcher ignored = new AntPathRequestMatcher("/saml/**");
 				RequestMatcher notIgnored = new NegatedRequestMatcher(ignored);
 				RequestMatcher matcher = new AndRequestMatcher(new DefaultRequiresCsrfMatcher(), notIgnored);
 
