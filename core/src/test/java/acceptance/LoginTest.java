@@ -11,6 +11,7 @@ import java.io.IOException;
 
 import javax.servlet.ServletException;
 
+import org.assertj.core.api.AbstractCharSequenceAssert;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.openqa.selenium.By;
@@ -30,9 +31,7 @@ public class LoginTest extends IntegrationTest {
 
 	@Test
 	public void canLogin() throws IOException, ServletException {
-		driver.findElement(By.name("username")).sendKeys(username);
-		driver.findElement(By.name("password")).sendKeys(password);
-		driver.findElement(By.id("okta-signin-submit")).submit();
+		doLogin();
 
 		await().atMost(5, SECONDS)
 				.untilAsserted(() -> assertThat(driver.findElement(By.tagName("body")).getText()).contains("Hello world"));
