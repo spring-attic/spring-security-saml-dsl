@@ -11,7 +11,7 @@ import java.io.IOException;
 
 import javax.servlet.ServletException;
 
-import org.assertj.core.api.AbstractCharSequenceAssert;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.openqa.selenium.By;
@@ -41,6 +41,20 @@ public class LoginTest extends IntegrationTest {
 		verifyCredentialsAreExcluded(argumentCaptor.getValue());
 		verifyEventHasBeenPublishedOfType(InteractiveAuthenticationSuccessEvent.class, 1);
 		verifyEventHasBeenPublishedOfType(AuthenticationSuccessEvent.class, 1);
+	}
+
+	@Test
+	@Ignore("Disabled since the maintainer of the repository should update the metadata.xml " +
+			"to include the okta md:SingleSignOnService definitions and provide the localhost.cer to okta")
+	public void canLogout() {
+		doLogin();
+
+		await().atMost(5, SECONDS).untilAsserted(this::indexPageHasBeenLoaded);
+
+		driver.get(baseUrl + "/saml/logout");
+
+		await().atMost(5, SECONDS)
+				.untilAsserted(() -> assertThat(driver.findElement(By.tagName("body")).getText()).contains("You are now logged out"));
 	}
 
 	@Test
