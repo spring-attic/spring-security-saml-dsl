@@ -11,13 +11,16 @@ import java.io.IOException;
 
 import javax.servlet.ServletException;
 
-import com.example.AuthenticationEventListener;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.openqa.selenium.By;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.event.AbstractAuthenticationEvent;
 import org.springframework.security.authentication.event.AuthenticationSuccessEvent;
 import org.springframework.security.authentication.event.InteractiveAuthenticationSuccessEvent;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.providers.ExpiringUsernameAuthenticationToken;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 
 public class LoginTest extends IntegrationTest {
@@ -34,16 +37,12 @@ public class LoginTest extends IntegrationTest {
 		await().atMost(5, SECONDS)
 				.untilAsserted(() -> assertThat(driver.findElement(By.tagName("body")).getText()).contains("Hello world"));
 
-		verify(authenticationSuccessHandler, times(1))
-				.onAuthenticationSuccess(any(), any(), any());
+		ArgumentCaptor<Authentication> argumentCaptor = ArgumentCaptor.forClass(Authentication.class);
 
-		assertThat(authenticationEventListener.getReceivedEvents())
-				.filteredOn(e -> e instanceof InteractiveAuthenticationSuccessEvent)
-				.hasSize(1);
-
-		assertThat(authenticationEventListener.getReceivedEvents())
-				.filteredOn(e -> e instanceof AuthenticationSuccessEvent)
-				.hasSize(1);
+		verifySuccessHandlerIsCalled(argumentCaptor);
+		verifyCredentialsAreExcluded(argumentCaptor.getValue());
+		verifyEventHasBeenPublishedOfType(InteractiveAuthenticationSuccessEvent.class, 1);
+		verifyEventHasBeenPublishedOfType(AuthenticationSuccessEvent.class, 1);
 	}
 
 	@Test
@@ -56,4 +55,22 @@ public class LoginTest extends IntegrationTest {
 				.untilAsserted(() -> assertThat(driver.findElement(By.tagName("body")).getText()).contains("Sign in failed!"));
 
 	}
+
+	private <T extends AbstractAuthenticationEvent> void verifyEventHasBeenPublishedOfType(Class<T> clazz, int times) {
+		assertThat(authenticationEventListener.getReceivedEvents())
+				.filteredOn(e -> e.getClass().isAssignableFrom(clazz))
+				.hasSize(times);
+	}
+
+	private void verifySuccessHandlerIsCalled(ArgumentCaptor<Authentication> argumentCaptor) throws IOException, ServletException {
+		verify(authenticationSuccessHandler, times(1))
+				.onAuthenticationSuccess(any(), any(), argumentCaptor.capture());
+	}
+
+	private void verifyCredentialsAreExcluded(Authentication authentication) {
+		assertThat(authentication).isInstanceOf(ExpiringUsernameAuthenticationToken.class);
+		ExpiringUsernameAuthenticationToken expiringUsernameAuthenticationToken = (ExpiringUsernameAuthenticationToken) authentication;
+		assertThat(expiringUsernameAuthenticationToken.getCredentials()).isNull();
+	}
+
 }
