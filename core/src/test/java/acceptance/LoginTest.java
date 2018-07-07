@@ -1,8 +1,5 @@
 package acceptance;
 
-import org.junit.Test;
-import org.openqa.selenium.By;
-
 import static java.lang.Thread.sleep;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Matchers.any;
@@ -12,6 +9,9 @@ import static org.mockito.Mockito.verify;
 import java.io.IOException;
 
 import javax.servlet.ServletException;
+
+import org.junit.Test;
+import org.openqa.selenium.By;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
@@ -30,7 +30,8 @@ public class LoginTest extends IntegrationTest {
 
 		assertThat(driver.findElement(By.tagName("body")).getText()).contains("Hello world");
 
-		verify(this.authenticationSuccessHandler, times(2)).onAuthenticationSuccess(any(), any(), any());
+		verify(this.authenticationSuccessHandler, times(1))
+				.onAuthenticationSuccess(any(), any(), any());
 	}
 
 	@Test
