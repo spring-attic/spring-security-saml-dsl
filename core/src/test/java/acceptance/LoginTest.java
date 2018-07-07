@@ -30,7 +30,7 @@ public class LoginTest extends IntegrationTest {
 
 		assertThat(driver.findElement(By.tagName("body")).getText()).contains("Hello world");
 
-		verify(this.authenticationSuccessHandler, times(1)).onAuthenticationSuccess(any(), any(), any());
+		verify(this.authenticationSuccessHandler, times(2)).onAuthenticationSuccess(any(), any(), any());
 	}
 
 	@Test
