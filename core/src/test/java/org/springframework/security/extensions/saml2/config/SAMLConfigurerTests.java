@@ -63,6 +63,11 @@ public class SAMLConfigurerTests {
 
 	}
 
+	@Test
+	public void fetchMetadata() throws Exception {
+		mockMvc.perform(get("/saml/metadata"))
+				.andExpect(status().isOk());
+	}
 
 	@Configuration
 	@EnableWebSecurity
