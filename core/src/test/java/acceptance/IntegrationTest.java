@@ -1,15 +1,20 @@
 package acceptance;
 
+import com.example.AuthenticationEventListener;
 import com.example.ColombiaApplication;
 import helper.Credentials;
 import helper.LoginHelper;
+import org.assertj.core.api.AbstractCharSequenceAssert;
 import org.junit.*;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runner.RunWith;
 import org.junit.runners.model.Statement;
+import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.firefox.FirefoxDriver;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
@@ -18,14 +23,18 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
 @ContextConfiguration(classes = ColombiaApplication.class)
 @RunWith(SpringJUnit4ClassRunner.class)
-@DirtiesContext(classMode= DirtiesContext.ClassMode.AFTER_CLASS)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 public abstract class IntegrationTest {
+
+	@Autowired
+	AuthenticationEventListener authenticationEventListener;
 
 	@ClassRule
 	public static IntegrationTestEnabled integrationTestEnabled = new IntegrationTestEnabled();
@@ -57,6 +66,17 @@ public abstract class IntegrationTest {
 	@After
 	public void teardown() {
 		driver.close();
+		authenticationEventListener.clear();
+	}
+
+	AbstractCharSequenceAssert<?, String> indexPageHasBeenLoaded() {
+		return assertThat(driver.findElement(By.tagName("body")).getText()).contains("Hello world");
+	}
+
+	void doLogin() {
+		driver.findElement(By.name("username")).sendKeys(username);
+		driver.findElement(By.name("password")).sendKeys(password);
+		driver.findElement(By.id("okta-signin-submit")).submit();
 	}
 
 	public static class IntegrationTestEnabled implements TestRule {

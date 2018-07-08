@@ -20,6 +20,8 @@ dependencies {
 		"org.springframework.boot:spring-boot-starter-thymeleaf:$springBootVersion",
 		"org.springframework.boot:spring-boot-starter-web:$springBootVersion",
 		"org.springframework.boot:spring-boot-starter-tomcat:$springBootVersion",
+        "org.jsoup:jsoup:1.11.3", 
+        "org.awaitility:awaitility:3.1.1"
 	)
 
     configurations {

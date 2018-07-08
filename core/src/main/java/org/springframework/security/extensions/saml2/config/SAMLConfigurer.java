@@ -1,15 +1,18 @@
 package org.springframework.security.extensions.saml2.config;
 
-import javax.servlet.http.HttpServletRequest;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Timer;
 import java.util.regex.Pattern;
+
+import javax.servlet.Filter;
+import javax.servlet.http.HttpServletRequest;
 
 import org.apache.commons.httpclient.HttpClient;
 import org.opensaml.Configuration;
@@ -26,9 +29,14 @@ import org.opensaml.xml.security.keyinfo.NamedKeyInfoGeneratorManager;
 import org.opensaml.xml.security.x509.CertPathPKIXTrustEvaluator;
 import org.opensaml.xml.security.x509.PKIXTrustEvaluator;
 import org.opensaml.xml.security.x509.X509KeyInfoGeneratorFactory;
+
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.DefaultAuthenticationEventPublisher;
 import org.springframework.security.config.annotation.ObjectPostProcessor;
 import org.springframework.security.config.annotation.SecurityConfigurerAdapter;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
@@ -68,18 +76,26 @@ import org.springframework.security.saml.websso.WebSSOProfile;
 import org.springframework.security.saml.websso.WebSSOProfileConsumerImpl;
 import org.springframework.security.saml.websso.WebSSOProfileImpl;
 import org.springframework.security.saml.websso.WebSSOProfileOptions;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.DefaultSecurityFilterChain;
 import org.springframework.security.web.FilterChainProxy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.channel.ChannelProcessingFilter;
+import org.springframework.security.web.authentication.AuthenticationFailureHandler;
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.security.web.authentication.DelegatingAuthenticationEntryPoint;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.logout.LogoutHandler;
+import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
 import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
 import org.springframework.security.web.authentication.logout.SimpleUrlLogoutSuccessHandler;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.security.web.util.matcher.AndRequestMatcher;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
+import org.springframework.security.web.util.matcher.RequestHeaderRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
+import org.springframework.util.Assert;
 
 /*
  Spring security configurer for okta.
@@ -87,23 +103,33 @@ import org.springframework.security.web.util.matcher.RequestMatcher;
  @Author Jean de Klerk
 */
 public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFilterChain, HttpSecurity> {
+
+	private static final RequestHeaderRequestMatcher X_REQUESTED_WITH = new RequestHeaderRequestMatcher("X-Requested-With",
+			"XMLHttpRequest");
+
 	private IdentityProvider identityProvider = new IdentityProvider();
 	private ServiceProvider serviceProvider = new ServiceProvider();
 	private WebSSOProfileConsumerImpl webSSOProfileConsumer = new WebSSOProfileConsumerImpl();
-
-	private WebSSOProfileOptions webSSOProfileOptions = webSSOProfileOptions();
 	private StaticBasicParserPool parserPool = staticBasicParserPool();
 	private SAMLProcessor samlProcessor = samlProcessor();
 	private SAMLDefaultLogger samlLogger = new SAMLDefaultLogger();
-	private SAMLAuthenticationProvider samlAuthenticationProvider;
+
+	private WebSSOProfileOptions webSSOProfileOptions;
 	private MetadataProvider metadataProvider;
 	private ExtendedMetadataDelegate extendedMetadataDelegate;
 	private CachingMetadataManager cachingMetadataManager;
 	private WebSSOProfile webSSOProfile;
 	private SingleLogoutProfile singleLogoutProfile;
+	private SAMLAuthenticationProvider samlAuthenticationProvider;
+
 	private SAMLUserDetailsService samlUserDetailsService;
 	private boolean forcePrincipalAsString = false;
-
+	private AuthenticationSuccessHandler successHandler;
+	private AuthenticationFailureHandler failureHandler;
+	private LogoutSuccessHandler logoutSuccessHandler = defaultLogoutSuccessHandler();
+	private ApplicationEventPublisher applicationEventPublisher;
+	private AuthenticationEntryPoint xmlHttpRequestedWithEntryPoint = new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED);
+	private Collection<String> defaultAuthnContexts;
 	private ObjectPostProcessor<Object> objectPostProcessor = new ObjectPostProcessor<Object>() {
 		public <T> T postProcess(T object) {
 			return object;
@@ -115,8 +141,8 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 	}
 
 	@Override
-	public void init(HttpSecurity http) {
-
+	public void init(HttpSecurity http) throws Exception {
+		webSSOProfileOptions = webSSOProfileOptions();
 		metadataProvider = identityProvider.metadataProvider();
 		ExtendedMetadata extendedMetadata = extendedMetadata(identityProvider.discoveryEnabled);
 		extendedMetadataDelegate = extendedMetadataDelegate(extendedMetadata);
@@ -130,32 +156,18 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 
 		SAMLContextProvider contextProvider = contextProvider();
 		SAMLEntryPoint samlEntryPoint = samlEntryPoint(contextProvider);
-		SAMLLogoutFilter samlLogoutFilter = samlLogoutFilter(contextProvider);
-		SAMLLogoutProcessingFilter samlLogoutProcessingFilter = samlLogoutProcessingFilter(contextProvider);
 
-		try {
-			http
-				.httpBasic()
-				.authenticationEntryPoint(samlEntryPoint);
+		http.httpBasic().authenticationEntryPoint(prepareEntryPoint(samlEntryPoint));
 
-			CsrfConfigurer<HttpSecurity> csrfConfigurer = http.getConfigurer(CsrfConfigurer.class);
-			if(csrfConfigurer != null) {
-				// Workaround to get working with Spring Security 3.2.
-				RequestMatcher ignored = new AntPathRequestMatcher("/saml/SSO");
-				RequestMatcher notIgnored = new NegatedRequestMatcher(ignored);
-				RequestMatcher matcher = new AndRequestMatcher(new DefaultRequiresCsrfMatcher(), notIgnored);
-
-				csrfConfigurer.requireCsrfProtectionMatcher(matcher);
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
+		CsrfConfigurer<HttpSecurity> csrfConfigurer = http.getConfigurer(CsrfConfigurer.class);
+		if (csrfConfigurer != null) {
+			disableCsrfForSamlEndpoints(csrfConfigurer);
 		}
 
 		http
-			.addFilterBefore(metadataGeneratorFilter(samlEntryPoint, extendedMetadata), ChannelProcessingFilter.class)
-			.addFilterAfter(samlFilter(samlEntryPoint, samlLogoutFilter, samlLogoutProcessingFilter, contextProvider),
-					BasicAuthenticationFilter.class)
-			.authenticationProvider(samlAuthenticationProvider);
+				.addFilterBefore(metadataGeneratorFilter(samlEntryPoint, extendedMetadata), ChannelProcessingFilter.class)
+				.addFilterAfter(samlFilter(samlEntryPoint, contextProvider), BasicAuthenticationFilter.class)
+				.authenticationProvider(samlAuthenticationProvider);
 	}
 
 	public static SAMLConfigurer saml() {
@@ -177,6 +189,37 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 		return this;
 	}
 
+	public SAMLConfigurer successHandler(AuthenticationSuccessHandler successHandler) {
+		this.successHandler = successHandler;
+		return this;
+	}
+
+	public SAMLConfigurer failureHandler(AuthenticationFailureHandler failureHandler) {
+		this.failureHandler = failureHandler;
+		return this;
+	}
+
+	public SAMLConfigurer logoutHandler(LogoutSuccessHandler logoutSuccessHandler) {
+		Assert.notNull(logoutSuccessHandler, "LogoutSuccessHandler must not be null");
+		this.logoutSuccessHandler = logoutSuccessHandler;
+		return this;
+	}
+
+	public SAMLConfigurer applicationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
+		this.applicationEventPublisher = applicationEventPublisher;
+		return this;
+	}
+
+	public SAMLConfigurer xmlHttpRequestedWithEntryPoint(AuthenticationEntryPoint xmlHttpRequestedWithEntryPoint) {
+		this.xmlHttpRequestedWithEntryPoint = xmlHttpRequestedWithEntryPoint;
+		return this;
+	}
+
+	public SAMLConfigurer defaultAuthnContexts(Collection<String> defaultAuthnContexts) {
+		this.defaultAuthnContexts = defaultAuthnContexts;
+		return this;
+	}
+
 	public IdentityProvider identityProvider() {
 		return identityProvider;
 	}
@@ -192,6 +235,17 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 		return entityBaseURL;
 	}
 
+	private AuthenticationEntryPoint prepareEntryPoint(SAMLEntryPoint samlEntryPoint) {
+		if (this.xmlHttpRequestedWithEntryPoint != null) {
+			LinkedHashMap<RequestMatcher, AuthenticationEntryPoint> entryPoints = new LinkedHashMap<>();
+			entryPoints.put(X_REQUESTED_WITH, this.xmlHttpRequestedWithEntryPoint);
+			DelegatingAuthenticationEntryPoint defaultEntryPoint = new DelegatingAuthenticationEntryPoint(entryPoints);
+			defaultEntryPoint.setDefaultEntryPoint(samlEntryPoint);
+			return defaultEntryPoint;
+		}
+		return samlEntryPoint;
+	}
+
 	private SAMLEntryPoint samlEntryPoint(SAMLContextProvider contextProvider) {
 		SAMLEntryPoint samlEntryPoint = new SAMLDslEntryPoint();
 		samlEntryPoint.setDefaultProfileOptions(webSSOProfileOptions);
@@ -202,12 +256,6 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 		return samlEntryPoint;
 	}
 
-	private SimpleUrlLogoutSuccessHandler successLogoutHandler() {
-		SimpleUrlLogoutSuccessHandler logoutSuccessHandler = new SimpleUrlLogoutSuccessHandler();
-		logoutSuccessHandler.setDefaultTargetUrl("/");
-		return logoutSuccessHandler;
-	}
-
 	private SecurityContextLogoutHandler logoutHandler() {
 		SecurityContextLogoutHandler logoutHandler = new SecurityContextLogoutHandler();
 		logoutHandler.setInvalidateHttpSession(true);
@@ -216,9 +264,9 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 	}
 
 	private SAMLLogoutFilter samlLogoutFilter(SAMLContextProvider contextProvider) {
-		SAMLLogoutFilter samlLogoutFilter = new SAMLLogoutFilter(successLogoutHandler(),
-				new LogoutHandler[]{logoutHandler()},
-				new LogoutHandler[]{logoutHandler()});
+		SAMLLogoutFilter samlLogoutFilter = new SAMLLogoutFilter(this.logoutSuccessHandler,
+				new LogoutHandler[] {logoutHandler()},
+				new LogoutHandler[] {logoutHandler()});
 		samlLogoutFilter.setProfile(singleLogoutProfile);
 		samlLogoutFilter.setContextProvider(contextProvider);
 		samlLogoutFilter.setSamlLogger(samlLogger);
@@ -227,7 +275,7 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 
 	private SAMLLogoutProcessingFilter samlLogoutProcessingFilter(SAMLContextProvider contextProvider) {
 		SAMLLogoutProcessingFilter samlLogoutProcessingFilter =
-				new SAMLLogoutProcessingFilter(successLogoutHandler(), logoutHandler());
+				new SAMLLogoutProcessingFilter(this.logoutSuccessHandler, logoutHandler());
 		samlLogoutProcessingFilter.setLogoutProfile(singleLogoutProfile);
 		samlLogoutProcessingFilter.setContextProvider(contextProvider);
 		samlLogoutProcessingFilter.setSamlLogger(samlLogger);
@@ -242,17 +290,10 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 		return new SAMLProcessorImpl(bindings);
 	}
 
-	private CachingMetadataManager cachingMetadataManager() {
+	private CachingMetadataManager cachingMetadataManager() throws MetadataProviderException {
 		List<MetadataProvider> providers = new ArrayList<>();
 		providers.add(extendedMetadataDelegate);
-
-		CachingMetadataManager cachingMetadataManager = null;
-		try {
-			cachingMetadataManager = new CachingMetadataManager(providers);
-		} catch (MetadataProviderException e) {
-			e.printStackTrace();
-		}
-
+		CachingMetadataManager cachingMetadataManager = new CachingMetadataManager(providers);
 		cachingMetadataManager.setKeyManager(serviceProvider.keyManager);
 		return cachingMetadataManager;
 	}
@@ -262,7 +303,7 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 		try {
 			parserPool.initialize();
 		} catch (XMLParserException e) {
-			e.printStackTrace();
+			throw new RuntimeException("Could not initialize StaticBasicParserPool", e);
 		}
 		return parserPool;
 	}
@@ -284,16 +325,14 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 	private WebSSOProfileOptions webSSOProfileOptions() {
 		WebSSOProfileOptions webSSOProfileOptions = new WebSSOProfileOptions();
 		webSSOProfileOptions.setIncludeScoping(false);
+		if (this.defaultAuthnContexts != null && !this.defaultAuthnContexts.isEmpty()) {
+			webSSOProfileOptions.setAuthnContexts(defaultAuthnContexts);
+		}
 		return webSSOProfileOptions;
 	}
 
-	private void bootstrap() {
-		try {
-			PaosBootstrap.bootstrap();
-		} catch (ConfigurationException e) {
-			e.printStackTrace();
-		}
-
+	private void bootstrap() throws ConfigurationException {
+		PaosBootstrap.bootstrap();
 		NamedKeyInfoGeneratorManager manager = Configuration.getGlobalSecurityConfiguration().getKeyInfoGeneratorManager();
 		X509KeyInfoGeneratorFactory generator = new X509KeyInfoGeneratorFactory();
 		generator.setEmitEntityCertificate(true);
@@ -309,15 +348,33 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 		return new HTTPRedirectDeflateBinding(parserPool);
 	}
 
-	private SAMLProcessingFilter samlWebSSOProcessingFilter(SAMLAuthenticationProvider samlAuthenticationProvider, SAMLContextProvider contextProvider, SAMLProcessor samlProcessor) throws Exception {
+	private SAMLProcessingFilter samlWebSSOProcessingFilter(SAMLContextProvider contextProvider) throws Exception {
 		SAMLProcessingFilter samlWebSSOProcessingFilter = new SAMLProcessingFilter();
 
-		AuthenticationManagerBuilder authenticationManagerBuilder = new AuthenticationManagerBuilder(objectPostProcessor);
-		authenticationManagerBuilder.authenticationProvider(samlAuthenticationProvider);
-		samlWebSSOProcessingFilter.setAuthenticationManager(authenticationManagerBuilder.build());
+		samlWebSSOProcessingFilter.setAuthenticationManager(this.authenticationManager(samlAuthenticationProvider));
 		samlWebSSOProcessingFilter.setContextProvider(contextProvider);
 		samlWebSSOProcessingFilter.setSAMLProcessor(samlProcessor);
+		if (this.successHandler != null) {
+			samlWebSSOProcessingFilter.setAuthenticationSuccessHandler(this.successHandler);
+		}
+		if (this.failureHandler != null) {
+			samlWebSSOProcessingFilter.setAuthenticationFailureHandler(this.failureHandler);
+		}
+		if (this.applicationEventPublisher != null) {
+			samlWebSSOProcessingFilter.setApplicationEventPublisher(this.applicationEventPublisher);
+		}
 		return samlWebSSOProcessingFilter;
+	}
+
+	private AuthenticationManager authenticationManager(SAMLAuthenticationProvider samlAuthenticationProvider) throws Exception {
+		AuthenticationManagerBuilder authenticationManagerBuilder = new AuthenticationManagerBuilder(this.objectPostProcessor);
+		authenticationManagerBuilder.authenticationProvider(samlAuthenticationProvider);
+		if (this.applicationEventPublisher != null) {
+			DefaultAuthenticationEventPublisher authenticationEventPublisher = new DefaultAuthenticationEventPublisher();
+			authenticationEventPublisher.setApplicationEventPublisher(this.applicationEventPublisher);
+			authenticationManagerBuilder.authenticationEventPublisher(authenticationEventPublisher);
+		}
+		return authenticationManagerBuilder.build();
 	}
 
 	private MetadataGeneratorFilter metadataGeneratorFilter(SAMLEntryPoint samlEntryPoint, ExtendedMetadata extendedMetadata) {
@@ -326,29 +383,35 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 		return metadataGeneratorFilter;
 	}
 
-	private FilterChainProxy samlFilter(SAMLEntryPoint samlEntryPoint, SAMLLogoutFilter samlLogoutFilter,
-										SAMLLogoutProcessingFilter samlLogoutProcessingFilter, SAMLContextProvider contextProvider) {
+	private FilterChainProxy samlFilter(SAMLEntryPoint samlEntryPoint, SAMLContextProvider contextProvider) throws Exception {
 		List<SecurityFilterChain> chains = new ArrayList<>();
-		chains.add(new DefaultSecurityFilterChain(new AntPathRequestMatcher("/saml/login/**"),
-			samlEntryPoint));
-		chains.add(new DefaultSecurityFilterChain(new AntPathRequestMatcher("/saml/logout/**"),
-			samlLogoutFilter));
-		chains.add(new DefaultSecurityFilterChain(new AntPathRequestMatcher("/saml/metadata/**"),
-			new MetadataDisplayFilter()));
-		try {
-			chains.add(new DefaultSecurityFilterChain(new AntPathRequestMatcher("/saml/SSO/**"),
-				samlWebSSOProcessingFilter(samlAuthenticationProvider, contextProvider, samlProcessor)));
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		chains.add(new DefaultSecurityFilterChain(new AntPathRequestMatcher("/saml/SingleLogout/**"),
-				samlLogoutProcessingFilter));
+		chains.add(securityFilterChain("/saml/login/**", samlEntryPoint));
+		chains.add(securityFilterChain("/saml/logout/**", samlLogoutFilter(contextProvider)));
+		chains.add(securityFilterChain("/saml/metadata/**", metadataDisplayFilter(contextProvider)));
+		chains.add(securityFilterChain("/saml/SSO/**", samlWebSSOProcessingFilter(contextProvider)));
+		chains.add(securityFilterChain("/saml/SingleLogout/**", samlLogoutProcessingFilter(contextProvider)));
+		chains.add(securityFilterChain("/saml/discovery/**", samlDiscovery(contextProvider)));
+
+		return new FilterChainProxy(chains);
+	}
+
+	private static DefaultSecurityFilterChain securityFilterChain(String pattern, Filter filter) {
+		return new DefaultSecurityFilterChain(new AntPathRequestMatcher(pattern), filter);
+	}
+
+	private SAMLDiscovery samlDiscovery(SAMLContextProvider contextProvider) {
 		SAMLDiscovery samlDiscovery = new SAMLDiscovery();
 		samlDiscovery.setMetadata(cachingMetadataManager);
 		samlDiscovery.setContextProvider(contextProvider);
-		chains.add(new DefaultSecurityFilterChain(new AntPathRequestMatcher("/saml/discovery/**"),
-			samlDiscovery));
-		return new FilterChainProxy(chains);
+		return samlDiscovery;
+	}
+
+	private MetadataDisplayFilter metadataDisplayFilter(SAMLContextProvider contextProvider) {
+		MetadataDisplayFilter metadataDisplayFilter = new MetadataDisplayFilter();
+		metadataDisplayFilter.setContextProvider(contextProvider);
+		metadataDisplayFilter.setManager(cachingMetadataManager);
+		metadataDisplayFilter.setKeyManager(serviceProvider.keyManager);
+		return metadataDisplayFilter;
 	}
 
 	private SingleLogoutProfile singleLogoutProfile() {
@@ -364,6 +427,7 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 		samlAuthenticationProvider.setSamlLogger(samlLogger);
 		samlAuthenticationProvider.setConsumer(webSSOProfileConsumer);
 		samlAuthenticationProvider.setUserDetails(this.samlUserDetailsService);
+		samlAuthenticationProvider.setExcludeCredential(serviceProvider.excludeCredential);
 		return samlAuthenticationProvider;
 	}
 
@@ -403,9 +467,17 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 		return metadataGenerator;
 	}
 
+	private SimpleUrlLogoutSuccessHandler defaultLogoutSuccessHandler() {
+		SimpleUrlLogoutSuccessHandler logoutSuccessHandler = new SimpleUrlLogoutSuccessHandler();
+		logoutSuccessHandler.setDefaultTargetUrl("/");
+
+		return logoutSuccessHandler;
+	}
+
 	public class IdentityProvider {
 
 		private String metadataFilePath;
+
 		private boolean discoveryEnabled = true;
 
 		public IdentityProvider metadataFilePath(String metadataFilePath) {
@@ -418,7 +490,7 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 			return this;
 		}
 
-		private MetadataProvider metadataProvider() {
+		private MetadataProvider metadataProvider() throws MetadataProviderException, IOException {
 			if (metadataFilePath.startsWith("http")) {
 				return httpMetadataProvider();
 			} else {
@@ -426,51 +498,53 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 			}
 		}
 
-		private HTTPMetadataProvider httpMetadataProvider() {
-			try {
-				HTTPMetadataProvider httpMetadataProvider = new HTTPMetadataProvider(new Timer(), new HttpClient(), metadataFilePath);
-				httpMetadataProvider.setParserPool(parserPool);
-				return httpMetadataProvider;
-			} catch (MetadataProviderException e) {
-				e.printStackTrace();
-				return null;
-			}
+		private HTTPMetadataProvider httpMetadataProvider() throws MetadataProviderException {
+			HTTPMetadataProvider httpMetadataProvider = new HTTPMetadataProvider(new Timer(), new HttpClient(), metadataFilePath);
+			httpMetadataProvider.setParserPool(parserPool);
+			return httpMetadataProvider;
 		}
 
-		private FilesystemMetadataProvider fileSystemMetadataProvider() {
+		private FilesystemMetadataProvider fileSystemMetadataProvider() throws IOException, MetadataProviderException {
 			DefaultResourceLoader loader = new DefaultResourceLoader();
 			Resource metadataResource = loader.getResource(metadataFilePath);
-
-			File samlMetadata = null;
-			try {
-				samlMetadata = metadataResource.getFile();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-
-			FilesystemMetadataProvider filesystemMetadataProvider = null;
-			try {
-				filesystemMetadataProvider = new FilesystemMetadataProvider(samlMetadata);
-			} catch (MetadataProviderException e) {
-				e.printStackTrace();
-			}
+			File samlMetadata = metadataResource.getFile();
+			FilesystemMetadataProvider filesystemMetadataProvider = new FilesystemMetadataProvider(samlMetadata);
 			filesystemMetadataProvider.setParserPool(parserPool);
-
 			return filesystemMetadataProvider;
 		}
 
-		public SAMLConfigurer and () { return SAMLConfigurer.this; }
+		public SAMLConfigurer and() {
+			return SAMLConfigurer.this;
+		}
+
+	}
+
+	private void disableCsrfForSamlEndpoints(CsrfConfigurer<HttpSecurity> csrfConfigurer) {
+		// Workaround to get working with Spring Security 3.2.
+		RequestMatcher ignored = new AntPathRequestMatcher("/saml/**");
+		RequestMatcher notIgnored = new NegatedRequestMatcher(ignored);
+		RequestMatcher matcher = new AndRequestMatcher(new DefaultRequiresCsrfMatcher(), notIgnored);
+
+		csrfConfigurer.requireCsrfProtectionMatcher(matcher);
 	}
 
 	public class ServiceProvider {
 
 		private KeyStore keyStore = new KeyStore();
+
 		private KeyManager keyManager;
+
 		private String protocol;
+
 		private String hostName;
+
 		private String basePath;
+
 		private String entityId;
+
 		private SAMLMessageStorageFactory storageFactory;
+
+		private boolean excludeCredential = false;
 
 		public ServiceProvider protocol(String protocol) {
 			this.protocol = protocol;
@@ -497,22 +571,24 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 			return this;
 		}
 
+		public ServiceProvider excludeCredential(boolean excludeCredential) {
+			this.excludeCredential = excludeCredential;
+			return this;
+		}
+
 		public KeyStore keyStore() {
 			return keyStore;
 		}
 
-		public SAMLConfigurer and () { return SAMLConfigurer.this; }
+		public SAMLConfigurer and() {
+			return SAMLConfigurer.this;
+		}
 
-		private KeyManager keyManager() {
+		private KeyManager keyManager() throws IOException {
 			DefaultResourceLoader loader = new DefaultResourceLoader();
 			Resource storeFile = loader.getResource(keyStore.getStoreFilePath());
 			if (keyStore.getStoreFilePath().startsWith("file://")) {
-				try {
-					storeFile = new FileSystemResource(storeFile.getFile());
-				} catch (IOException e) {
-					e.printStackTrace();
-					throw new RuntimeException("Cannot load file system resource: " + keyStore.getStoreFilePath(), e);
-				}
+				storeFile = new FileSystemResource(storeFile.getFile());
 			}
 			Map<String, String> passwords = new HashMap<>();
 			passwords.put(keyStore.getKeyname(), keyStore.getKeyPassword());
@@ -520,9 +596,13 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 		}
 
 		public class KeyStore {
+
 			private String storeFilePath;
+
 			private String password;
+
 			private String keyname;
+
 			private String keyPassword;
 
 			public KeyStore storeFilePath(String storeFilePath) {
@@ -574,30 +654,6 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 						", keyPassword='" + keyPassword + '\'' +
 						'}';
 			}
-
-			@Override
-			public boolean equals(Object o) {
-				if (this == o) return true;
-				if (o == null || getClass() != o.getClass()) return false;
-
-				KeyStore keyStore = (KeyStore) o;
-
-				if (storeFilePath != null ? !storeFilePath.equals(keyStore.storeFilePath) : keyStore.storeFilePath != null)
-					return false;
-				if (password != null ? !password.equals(keyStore.password) : keyStore.password != null) return false;
-				if (keyname != null ? !keyname.equals(keyStore.keyname) : keyStore.keyname != null) return false;
-				return keyPassword != null ? keyPassword.equals(keyStore.keyPassword) : keyStore.keyPassword == null;
-
-			}
-
-			@Override
-			public int hashCode() {
-				int result = storeFilePath != null ? storeFilePath.hashCode() : 0;
-				result = 31 * result + (password != null ? password.hashCode() : 0);
-				result = 31 * result + (keyname != null ? keyname.hashCode() : 0);
-				result = 31 * result + (keyPassword != null ? keyPassword.hashCode() : 0);
-				return result;
-			}
 		}
 	}
 
@@ -611,4 +667,5 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 			return !allowedMethods.matcher(request.getMethod()).matches();
 		}
 	}
+
 }
