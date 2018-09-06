@@ -122,7 +122,7 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 		extendedMetadataDelegate = extendedMetadataDelegate(extendedMetadata);
 		serviceProvider.keyManager = serviceProvider.keyManager();
 		cachingMetadataManager = cachingMetadataManager();
-		webSSOProfile = new WebSSOProfileImpl(samlProcessor, cachingMetadataManager);
+		webSSOProfile = webSSOProfile();
 		singleLogoutProfile = singleLogoutProfile();
 		samlAuthenticationProvider = samlAuthenticationProvider(webSSOProfileConsumer);
 
@@ -351,10 +351,17 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 		return new FilterChainProxy(chains);
 	}
 
+	private WebSSOProfile webSSOProfile() {
+		WebSSOProfileImpl webSSOProfile = new WebSSOProfileImpl(samlProcessor, cachingMetadataManager);
+		webSSOProfile.setResponseSkew(serviceProvider.responseSkew);
+		return webSSOProfile;
+	}
+
 	private SingleLogoutProfile singleLogoutProfile() {
 		SingleLogoutProfileImpl singleLogoutProfile = new SingleLogoutProfileImpl();
 		singleLogoutProfile.setMetadata(cachingMetadataManager);
 		singleLogoutProfile.setProcessor(samlProcessor);
+		singleLogoutProfile.setResponseSkew(serviceProvider.responseSkew);
 		return singleLogoutProfile;
 	}
 
@@ -479,6 +486,7 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 		private String basePath;
 		private String entityId;
 		private SAMLMessageStorageFactory storageFactory;
+		private int responseSkew = 60;
 
 		public ServiceProvider protocol(String protocol) {
 			this.protocol = protocol;
@@ -502,6 +510,11 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 
 		public ServiceProvider storageFactory(SAMLMessageStorageFactory storageFactory) {
 			this.storageFactory = storageFactory;
+			return this;
+		}
+
+		public ServiceProvider responseSkew(int responseSkew) {
+			this.responseSkew = responseSkew;
 			return this;
 		}
 
