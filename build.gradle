@@ -40,5 +40,3 @@ configure(subprojects) { subproject ->
     apply from: "${gradleScriptDir}/publish-maven.gradle"
 }
 
-
-
