@@ -89,12 +89,12 @@ import org.springframework.security.web.util.matcher.RequestMatcher;
 public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFilterChain, HttpSecurity> {
 	private IdentityProvider identityProvider = new IdentityProvider();
 	private ServiceProvider serviceProvider = new ServiceProvider();
-	private WebSSOProfileConsumerImpl webSSOProfileConsumer = new WebSSOProfileConsumerImpl();
 
 	private WebSSOProfileOptions webSSOProfileOptions = webSSOProfileOptions();
 	private StaticBasicParserPool parserPool = staticBasicParserPool();
 	private SAMLProcessor samlProcessor = samlProcessor();
 	private SAMLDefaultLogger samlLogger = new SAMLDefaultLogger();
+	private WebSSOProfileConsumerImpl webSSOProfileConsumer;
 	private SAMLAuthenticationProvider samlAuthenticationProvider;
 	private MetadataProvider metadataProvider;
 	private ExtendedMetadataDelegate extendedMetadataDelegate;
@@ -124,6 +124,12 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 		cachingMetadataManager = cachingMetadataManager();
 		webSSOProfile = webSSOProfile();
 		singleLogoutProfile = singleLogoutProfile();
+
+		if (webSSOProfileConsumer == null) {
+			webSSOProfileConsumer = new WebSSOProfileConsumerImpl(samlProcessor, cachingMetadataManager);
+			webSSOProfileConsumer.setMaxAuthenticationAge(serviceProvider.maxAuthenticationAge);
+		}
+
 		samlAuthenticationProvider = samlAuthenticationProvider(webSSOProfileConsumer);
 
 		bootstrap();
@@ -487,6 +493,7 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 		private String entityId;
 		private SAMLMessageStorageFactory storageFactory;
 		private int responseSkew = 60;
+		private long maxAuthenticationAge = 7200;
 
 		public ServiceProvider protocol(String protocol) {
 			this.protocol = protocol;
@@ -515,6 +522,11 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 
 		public ServiceProvider responseSkew(int responseSkew) {
 			this.responseSkew = responseSkew;
+			return this;
+		}
+
+		public ServiceProvider maxAuthenticationAge(long maxAuthenticationAge) {
+			this.maxAuthenticationAge = maxAuthenticationAge;
 			return this;
 		}
 
