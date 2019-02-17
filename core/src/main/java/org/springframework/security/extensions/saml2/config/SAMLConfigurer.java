@@ -141,8 +141,7 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 
 		// If we wanted a different signing algorithm, apply it here.  This
 		// needs to happen after bootstrapping, but before we define anything
-		// else, which is what prevents us from doing something more elegant
-		// like .registerSigningAlgoritum() in the client app.
+		// else.
 		if ( signingAlgorithm != null ) {
 			BasicSecurityConfiguration config =
 					(BasicSecurityConfiguration)Configuration.getGlobalSecurityConfiguration();
@@ -185,8 +184,7 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 	}
 
 	/**
-	 * Apply the saml configuration, but use a different signature algorithm
-	 * than the default "SHA1".
+	 * Use a different signature algorithm than the default "SHA1".
 	 * @param name the name of the algorithm, such as "RSA"
 	 * @param algorithm the URI of the algorithm to use.  This should be one of
 	 * the algorithms in {@code SignatureConstants}
@@ -194,14 +192,13 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 	 * the algorithms in {@code SignatureConstants}
 	 * @return a properly configured SAMLConfigurer.
 	 */
-	public static SAMLConfigurer saml(String name, String algorithm, String digest) {
+	public SAMLConfigurer signingAlgorithm(String name, String algorithm, String digest) {
 		// We can't initialize the signing algorithm until after we've
 		// bootstrapped SAML, so make a note of the args for later.
-		SAMLConfigurer configurer = new SAMLConfigurer();
-		configurer.signingAlgorithmName = name;
-		configurer.signingAlgorithm = algorithm;
-		configurer.signingDigest = digest;
-		return configurer;
+		signingAlgorithmName = name;
+		signingAlgorithm = algorithm;
+		signingDigest = digest;
+		return this;
 	}
 
 	public SAMLConfigurer userDetailsService(SAMLUserDetailsService samlUserDetailsService) {
@@ -461,6 +458,7 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 
 		private String metadataFilePath;
 		private boolean discoveryEnabled = true;
+		private boolean metadataTrustCheckEnabled = true;
 
 		public IdentityProvider metadataFilePath(String metadataFilePath) {
 			this.metadataFilePath = metadataFilePath;
@@ -469,6 +467,11 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 
 		public IdentityProvider discoveryEnabled(boolean discoveryEnabled) {
 			this.discoveryEnabled = discoveryEnabled;
+			return this;
+		}
+
+		public IdentityProvider metadataTrustCheckEnabled(boolean metadataTrustCheckEnabled) {
+			this.metadataTrustCheckEnabled = metadataTrustCheckEnabled;
 			return this;
 		}
 
