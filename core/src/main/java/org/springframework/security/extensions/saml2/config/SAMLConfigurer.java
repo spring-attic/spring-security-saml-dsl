@@ -22,6 +22,7 @@ import org.opensaml.xml.ConfigurationException;
 import org.opensaml.xml.parse.ParserPool;
 import org.opensaml.xml.parse.StaticBasicParserPool;
 import org.opensaml.xml.parse.XMLParserException;
+import org.opensaml.xml.security.BasicSecurityConfiguration;
 import org.opensaml.xml.security.keyinfo.NamedKeyInfoGeneratorManager;
 import org.opensaml.xml.security.x509.CertPathPKIXTrustEvaluator;
 import org.opensaml.xml.security.x509.PKIXTrustEvaluator;
@@ -104,6 +105,10 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 	private SAMLUserDetailsService samlUserDetailsService;
 	private boolean forcePrincipalAsString = false;
 
+	private String signingAlgorithmName;
+	private String signingAlgorithm;
+	private String signingDigest;
+
 	private ObjectPostProcessor<Object> objectPostProcessor = new ObjectPostProcessor<Object>() {
 		public <T> T postProcess(T object) {
 			return object;
@@ -133,6 +138,17 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 		samlAuthenticationProvider = samlAuthenticationProvider(webSSOProfileConsumer);
 
 		bootstrap();
+
+		// If we wanted a different signing algorithm, apply it here.  This
+		// needs to happen after bootstrapping, but before we define anything
+		// else, which is what prevents us from doing something more elegant
+		// like .registerSigningAlgoritum() in the client app.
+		if ( signingAlgorithm != null ) {
+			BasicSecurityConfiguration config =
+					(BasicSecurityConfiguration)Configuration.getGlobalSecurityConfiguration();
+			config.registerSignatureAlgorithmURI(signingAlgorithmName, signingAlgorithm);
+			config.setSignatureReferenceDigestMethod(signingDigest);
+		}
 
 		SAMLContextProvider contextProvider = contextProvider();
 		SAMLEntryPoint samlEntryPoint = samlEntryPoint(contextProvider);
@@ -168,6 +184,26 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 		return new SAMLConfigurer();
 	}
 
+	/**
+	 * Apply the saml configuration, but use a different signature algorithm
+	 * than the default "SHA1".
+	 * @param name the name of the algorithm, such as "RSA"
+	 * @param algorithm the URI of the algorithm to use.  This should be one of
+	 * the algorithms in {@code SignatureConstants}
+	 * @param digest the URI of the digest to use.  This should also be one of
+	 * the algorithms in {@code SignatureConstants}
+	 * @return a properly configured SAMLConfigurer.
+	 */
+	public static SAMLConfigurer saml(String name, String algorithm, String digest) {
+		// We can't initialize the signing algorithm until after we've
+		// bootstrapped SAML, so make a note of the args for later.
+		SAMLConfigurer configurer = new SAMLConfigurer();
+		configurer.signingAlgorithmName = name;
+		configurer.signingAlgorithm = algorithm;
+		configurer.signingDigest = digest;
+		return configurer;
+	}
+
 	public SAMLConfigurer userDetailsService(SAMLUserDetailsService samlUserDetailsService) {
 		this.samlUserDetailsService = samlUserDetailsService;
 		return this;
@@ -180,6 +216,11 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 
 	public SAMLConfigurer webSSOProfileConsumer(WebSSOProfileConsumerImpl webSSOProfileConsumer) {
 		this.webSSOProfileConsumer = webSSOProfileConsumer;
+		return this;
+	}
+
+	public SAMLConfigurer maxAuthenticationAge(int maxSeconds) {
+		webSSOProfileConsumer.setMaxAuthenticationAge(maxSeconds);
 		return this;
 	}
 
