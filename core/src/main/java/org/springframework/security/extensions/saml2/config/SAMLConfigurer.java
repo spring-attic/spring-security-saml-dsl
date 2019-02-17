@@ -183,6 +183,21 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 		return new SAMLConfigurer();
 	}
 
+	public SAMLConfigurer userDetailsService(SAMLUserDetailsService samlUserDetailsService) {
+		this.samlUserDetailsService = samlUserDetailsService;
+		return this;
+	}
+
+	public SAMLConfigurer forcePrincipalAsString() {
+		this.forcePrincipalAsString = true;
+		return this;
+	}
+
+	public SAMLConfigurer webSSOProfileConsumer(WebSSOProfileConsumerImpl webSSOProfileConsumer) {
+		this.webSSOProfileConsumer = webSSOProfileConsumer;
+		return this;
+	}
+
 	/**
 	 * Use a different signature algorithm than the default "SHA1".
 	 * @param name the name of the algorithm, such as "RSA"
@@ -201,23 +216,30 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 		return this;
 	}
 
-	public SAMLConfigurer userDetailsService(SAMLUserDetailsService samlUserDetailsService) {
-		this.samlUserDetailsService = samlUserDetailsService;
-		return this;
-	}
-
-	public SAMLConfigurer forcePrincipalAsString() {
-		this.forcePrincipalAsString = true;
-		return this;
-	}
-
-	public SAMLConfigurer webSSOProfileConsumer(WebSSOProfileConsumerImpl webSSOProfileConsumer) {
-		this.webSSOProfileConsumer = webSSOProfileConsumer;
-		return this;
-	}
-
+	/**
+	 * Sets maximum time between users authentication and processing of an
+	 * authentication statement.
+	 *
+	 * @param maxSeconds authentication age (in seconds)
+	 * @return The SAMLConfigurer so we can chain methods.
+	 */
 	public SAMLConfigurer maxAuthenticationAge(int maxSeconds) {
 		webSSOProfileConsumer.setMaxAuthenticationAge(maxSeconds);
+		return this;
+	}
+
+	/**
+ 	 * Use a different authentication provider for populating the Security
+ 	 * Context when a SAML login happens.
+ 	 *
+ 	 * @param samlAuthenticationProvider an instance of
+ 	 * {@code SAMLAuthenticationProvider} that will do the work of
+ 	 * authenticating the user in the SAML assertion.  This is really handy
+ 	 * when we want to trust an IDP for authentication, but not authorization.
+ 	 * @return The SAMLConfigurer so we can chain methods.
+ 	 */
+	public SAMLConfigurer authenticationProvider(SAMLAuthenticationProvider samlAuthenticationProvider) {
+		this.samlAuthenticationProvider = samlAuthenticationProvider;
 		return this;
 	}
 
@@ -410,7 +432,10 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 	}
 
 	private SAMLAuthenticationProvider samlAuthenticationProvider(WebSSOProfileConsumerImpl webSSOProfileConsumer) {
-		SAMLAuthenticationProvider samlAuthenticationProvider = new SAMLAuthenticationProvider();
+		// If we weren't given a provider, use the default.
+		if ( samlAuthenticationProvider == null ) {
+			samlAuthenticationProvider = new SAMLAuthenticationProvider();
+		}
 		samlAuthenticationProvider.setForcePrincipalAsString(forcePrincipalAsString);
 		samlAuthenticationProvider.setSamlLogger(samlLogger);
 		samlAuthenticationProvider.setConsumer(webSSOProfileConsumer);
