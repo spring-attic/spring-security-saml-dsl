@@ -217,18 +217,6 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 	}
 
 	/**
-	 * Sets maximum time between users authentication and processing of an
-	 * authentication statement.
-	 *
-	 * @param maxSeconds authentication age (in seconds)
-	 * @return The SAMLConfigurer so we can chain methods.
-	 */
-	public SAMLConfigurer maxAuthenticationAge(int maxSeconds) {
-		webSSOProfileConsumer.setMaxAuthenticationAge(maxSeconds);
-		return this;
-	}
-
-	/**
  	 * Use a different authentication provider for populating the Security
  	 * Context when a SAML login happens.
  	 *
@@ -644,6 +632,13 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 			return this;
 		}
 
+		/**
+		 * Sets maximum time between users authentication and processing of an
+		 * authentication statement.
+		 *
+		 * @param maxAuthenticationAge authentication age (in seconds)
+		 * @return The SAMLConfigurer so we can chain methods.
+		 */
 		public ServiceProvider maxAuthenticationAge(long maxAuthenticationAge) {
 			this.maxAuthenticationAge = maxAuthenticationAge;
 			return this;
