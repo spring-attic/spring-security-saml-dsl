@@ -73,6 +73,8 @@ import org.springframework.security.web.DefaultSecurityFilterChain;
 import org.springframework.security.web.FilterChainProxy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.channel.ChannelProcessingFilter;
+import org.springframework.security.web.authentication.AuthenticationFailureHandler;
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.logout.LogoutHandler;
 import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
 import org.springframework.security.web.authentication.logout.SimpleUrlLogoutSuccessHandler;
@@ -108,6 +110,9 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 	private String signingAlgorithmName;
 	private String signingAlgorithm;
 	private String signingDigest;
+	// These names were chosen to match what Spring already uses for .formLogin()
+	private AuthenticationSuccessHandler successHandler;
+	private AuthenticationFailureHandler failureHandler;
 
 	private ObjectPostProcessor<Object> objectPostProcessor = new ObjectPostProcessor<Object>() {
 		public <T> T postProcess(T object) {
@@ -240,6 +245,34 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
  	 */
 	public SAMLConfigurer authenticationProvider(SAMLAuthenticationProvider samlAuthenticationProvider) {
 		this.samlAuthenticationProvider = samlAuthenticationProvider;
+		return this;
+	}
+
+	/**
+ 	 * Set an {@code AuthenticationSuccessHandler} to use after a successful
+ 	 * SAML login.
+ 	 *
+ 	 * @param successHandler an implementation of
+ 	 * {@code AuthenticationSuccessHandler} that will run after a successful
+ 	 * SAML login.
+ 	 * @return The SAMLConfigurer so we can chain methods.
+ 	 */
+	public SAMLConfigurer successHandler(AuthenticationSuccessHandler successHandler) {
+		this.successHandler = successHandler;
+		return this;
+	}
+
+	/**
+ 	 * Set an {@code AuthenticationFailureHandler} to use after a failed SAML
+ 	 * login.
+ 	 *
+ 	 * @param failureHandler an implementation of
+ 	 * {@code AuthenticationFailureHandler} that will run after a failed SAML
+ 	 * login.
+ 	 * @return The SAMLConfigurer so we can chain methods.
+ 	 */
+	public SAMLConfigurer failureHandler(AuthenticationFailureHandler failureHandler) {
+		this.failureHandler = failureHandler;
 		return this;
 	}
 
@@ -383,6 +416,14 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 		samlWebSSOProcessingFilter.setAuthenticationManager(authenticationManagerBuilder.build());
 		samlWebSSOProcessingFilter.setContextProvider(contextProvider);
 		samlWebSSOProcessingFilter.setSAMLProcessor(samlProcessor);
+		// If we've been given success or failure handlers, use them here.  If
+		// not, do nothing so we still get the defaults.
+		if ( successHandler != null ) {
+			samlWebSSOProcessingFilter.setAuthenticationSuccessHandler(successHandler);
+		}
+		if ( failureHandler != null ) {
+			samlWebSSOProcessingFilter.setAuthenticationFailureHandler(failureHandler);
+		}
 		return samlWebSSOProcessingFilter;
 	}
 
