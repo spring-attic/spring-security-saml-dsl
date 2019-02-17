@@ -173,7 +173,7 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 		}
 
 		http
-			.addFilterBefore(metadataGeneratorFilter(samlEntryPoint), ChannelProcessingFilter.class)
+			.addFilterBefore(metadataGeneratorFilter(samlEntryPoint, identityProviders), ChannelProcessingFilter.class)
 			.addFilterAfter(samlFilter(samlEntryPoint, samlLogoutFilter, samlLogoutProcessingFilter, contextProvider),
 					BasicAuthenticationFilter.class)
 			.authenticationProvider(samlAuthenticationProvider);
@@ -422,8 +422,29 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 		return samlWebSSOProcessingFilter;
 	}
 
-	private MetadataGeneratorFilter metadataGeneratorFilter(SAMLEntryPoint samlEntryPoint) {
-		ExtendedMetadata extendedMetadata = new ExtendedMetadata();
+	/**
+	 * Create the metadata generator filter used by the HTTP filter chain.
+	 * This filter chain will control (among other thing) where users get
+	 * redirected when they access a protected resource and IDP discovery is
+	 * turned on.  When there is only one Identity Provider, this is simple,
+	 * but it is not so simple when there is more than one.  Users can only
+	 * be redirected to a single URL, so we'll use the URL of the first IDP
+	 * with discovery enabled.
+	 * @param samlEntryPoint
+	 * @param identityProviders
+	 * @return
+	 */
+	private MetadataGeneratorFilter metadataGeneratorFilter(SAMLEntryPoint samlEntryPoint, List<IdentityProvider> identityProviders) {
+		IdentityProvider provider = identityProviders.stream()
+				.filter( idp -> idp.discoveryEnabled)
+				.findFirst()
+				.orElse(null);
+		// This bit is not obvious...  If we get a provider from the above filter,
+		// then it means there was at least one provider with discovery enabled.
+		// If the provider is null, then there are no IDPs configured with
+		// discovery.
+		boolean discoveryEnabled = (provider != null);
+		ExtendedMetadata extendedMetadata = extendedMetadata(discoveryEnabled);
 		extendedMetadata.setSignMetadata(true);
 		MetadataGeneratorFilter metadataGeneratorFilter = new MetadataGeneratorFilter(getMetadataGenerator(samlEntryPoint, extendedMetadata));
 		metadataGeneratorFilter.setManager(cachingMetadataManager);
