@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Timer;
+import java.util.function.Function;
 import java.util.regex.Pattern;
 
 import org.apache.commons.httpclient.HttpClient;
@@ -90,7 +91,7 @@ import org.springframework.security.web.util.matcher.RequestMatcher;
  @Author Jean de Klerk
 */
 public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFilterChain, HttpSecurity> {
-	private IdentityProvider identityProvider = new IdentityProvider();
+	private List<IdentityProvider> identityProviders = new ArrayList<>();
 	private ServiceProvider serviceProvider = new ServiceProvider();
 
 	private WebSSOProfileOptions webSSOProfileOptions = webSSOProfileOptions();
@@ -99,8 +100,6 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 	private SAMLDefaultLogger samlLogger = new SAMLDefaultLogger();
 	private WebSSOProfileConsumerImpl webSSOProfileConsumer;
 	private SAMLAuthenticationProvider samlAuthenticationProvider;
-	private MetadataProvider metadataProvider;
-	private ExtendedMetadataDelegate extendedMetadataDelegate;
 	private CachingMetadataManager cachingMetadataManager;
 	private WebSSOProfile webSSOProfile;
 	private SingleLogoutProfile singleLogoutProfile;
@@ -126,12 +125,8 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 
 	@Override
 	public void init(HttpSecurity http) {
-
-		metadataProvider = identityProvider.metadataProvider();
-		ExtendedMetadata extendedMetadata = extendedMetadata(identityProvider.discoveryEnabled);
-		extendedMetadataDelegate = extendedMetadataDelegate(extendedMetadata);
 		serviceProvider.keyManager = serviceProvider.keyManager();
-		cachingMetadataManager = cachingMetadataManager();
+		cachingMetadataManager = cachingMetadataManager(identityProviders);
 		webSSOProfile = webSSOProfile();
 		singleLogoutProfile = singleLogoutProfile();
 
@@ -178,7 +173,7 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 		}
 
 		http
-			.addFilterBefore(metadataGeneratorFilter(samlEntryPoint, extendedMetadata), ChannelProcessingFilter.class)
+			.addFilterBefore(metadataGeneratorFilter(samlEntryPoint), ChannelProcessingFilter.class)
 			.addFilterAfter(samlFilter(samlEntryPoint, samlLogoutFilter, samlLogoutProcessingFilter, contextProvider),
 					BasicAuthenticationFilter.class)
 			.authenticationProvider(samlAuthenticationProvider);
@@ -276,7 +271,13 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 		return this;
 	}
 
+	public SAMLConfigurer delegateConfig(Function<SAMLConfigurer, SAMLConfigurer> delegate) {
+		return delegate.apply(this);
+	}
+
 	public IdentityProvider identityProvider() {
+		IdentityProvider identityProvider = new IdentityProvider();
+		identityProviders.add(identityProvider);
 		return identityProvider;
 	}
 
@@ -341,9 +342,15 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 		return new SAMLProcessorImpl(bindings);
 	}
 
-	private CachingMetadataManager cachingMetadataManager() {
+	private CachingMetadataManager cachingMetadataManager(List<IdentityProvider> identityProviders) {
+		if ( identityProviders == null || identityProviders.size() < 1 ) {
+			throw new IllegalStateException("No Identity Providers were configured!");
+		}
 		List<MetadataProvider> providers = new ArrayList<>();
-		providers.add(extendedMetadataDelegate);
+		for ( IdentityProvider identityProvider : identityProviders ) {
+			ExtendedMetadata extendedMetadata = extendedMetadata(identityProvider.discoveryEnabled);
+			providers.add(extendedMetadataDelegate(identityProvider, extendedMetadata));
+		}
 
 		CachingMetadataManager cachingMetadataManager = null;
 		try {
@@ -366,9 +373,9 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 		return parserPool;
 	}
 
-	private ExtendedMetadataDelegate extendedMetadataDelegate(ExtendedMetadata extendedMetadata) {
-		ExtendedMetadataDelegate extendedMetadataDelegate = new ExtendedMetadataDelegate(metadataProvider, extendedMetadata);
-		extendedMetadataDelegate.setMetadataTrustCheck(false);
+	private ExtendedMetadataDelegate extendedMetadataDelegate(IdentityProvider identityProvider, ExtendedMetadata extendedMetadata) {
+		ExtendedMetadataDelegate extendedMetadataDelegate = new ExtendedMetadataDelegate(identityProvider.metadataProvider(), extendedMetadata);
+		extendedMetadataDelegate.setMetadataTrustCheck(identityProvider.metadataTrustCheckEnabled);
 		extendedMetadataDelegate.setMetadataRequireSignature(false);
 		return extendedMetadataDelegate;
 	}
@@ -427,7 +434,9 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 		return samlWebSSOProcessingFilter;
 	}
 
-	private MetadataGeneratorFilter metadataGeneratorFilter(SAMLEntryPoint samlEntryPoint, ExtendedMetadata extendedMetadata) {
+	private MetadataGeneratorFilter metadataGeneratorFilter(SAMLEntryPoint samlEntryPoint) {
+		ExtendedMetadata extendedMetadata = new ExtendedMetadata();
+		extendedMetadata.setSignMetadata(true);
 		MetadataGeneratorFilter metadataGeneratorFilter = new MetadataGeneratorFilter(getMetadataGenerator(samlEntryPoint, extendedMetadata));
 		metadataGeneratorFilter.setManager(cachingMetadataManager);
 		return metadataGeneratorFilter;
@@ -524,7 +533,7 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 
 		private String metadataFilePath;
 		private boolean discoveryEnabled = true;
-		private boolean metadataTrustCheckEnabled = true;
+		private boolean metadataTrustCheckEnabled = false;
 
 		public IdentityProvider metadataFilePath(String metadataFilePath) {
 			this.metadataFilePath = metadataFilePath;
