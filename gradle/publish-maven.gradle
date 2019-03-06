@@ -46,7 +46,7 @@ def customizePom(pom, gradleProject) {
 			licenses {
 				license {
 					name "The Apache Software License, Version 2.0"
-					url "http://www.apache.org/licenses/LICENSE-2.0.txt"
+					url "https://www.apache.org/licenses/LICENSE-2.0.txt"
 					distribution "repo"
 				}
 			}
@@ -82,13 +82,13 @@ def customizePom(pom, gradleProject) {
 			}
 			issueManagement {
 				system = "jira"
-				url = "http://jira.springsource.org/browse/SES"
+				url = "https://jira.springsource.org/browse/SES"
 			}
 			mailingLists {
 				mailingList {
 					name = "Spring Security SAML Forum"
-					post = "http://stackoverflow.com/questions/tagged/spring-security"
-					archive = "http://stackoverflow.com/questions/tagged/spring-security"
+					post = "https://stackoverflow.com/questions/tagged/spring-security"
+					archive = "https://stackoverflow.com/questions/tagged/spring-security"
 				}
 			}
 		}
