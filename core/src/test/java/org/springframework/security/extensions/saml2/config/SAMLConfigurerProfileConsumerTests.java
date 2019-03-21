@@ -74,7 +74,7 @@ public class SAMLConfigurerProfileConsumerTests {
 
 		assertThat(samlMessageContext).isNotNull();
 		assertThat(samlMessageContext.getInboundSAMLMessageId()).isEqualTo("id61844979402263501352984461");
-		assertThat(samlMessageContext.getPeerEntityId()).isEqualTo("http://www.okta.com/exkb5v2p0pp35JFKa0h7");
+		assertThat(samlMessageContext.getPeerEntityId()).isEqualTo("https://www.okta.com/exkb5v2p0pp35JFKa0h7");
 	}
 
 	private SAMLCredential stubSAMLCredential() {
