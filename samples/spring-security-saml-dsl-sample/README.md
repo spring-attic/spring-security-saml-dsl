@@ -1,7 +1,7 @@
 ## Set up a test okta
 
 #### Basic setup
-1. Navigate to [http://developer.okta.com/](http://developer.okta.com/)
+1. Navigate to [https://developer.okta.com/](https://developer.okta.com/)
 1. Click on *Get Started*
 1. Fill in your own name and email address
 1. Okta will send you a confirmation email, including your temporary password and a link to your new developer Okta instance
