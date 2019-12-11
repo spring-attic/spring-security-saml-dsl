@@ -303,7 +303,7 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 	private WebSSOProfileOptions webSSOProfileOptions() {
 		WebSSOProfileOptions webSSOProfileOptions = new WebSSOProfileOptions();
 		webSSOProfileOptions.setIncludeScoping(false);
-        webSSOProfileOptions.setRelayState(serviceProvider.relayState);
+		webSSOProfileOptions.setRelayState(serviceProvider.relayState);
 		return webSSOProfileOptions;
 	}
 
@@ -359,7 +359,7 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 			metadataDisplayFilter(contextProvider)));
 		try {
 			chains.add(new DefaultSecurityFilterChain(new AntPathRequestMatcher("/saml/SSO/**"),
-						samlWebSSOProcessingFilter(samlAuthenticationProvider, contextProvider, samlProcessor, successHandler)));
+			samlWebSSOProcessingFilter(samlAuthenticationProvider, contextProvider, samlProcessor, successHandler)));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
