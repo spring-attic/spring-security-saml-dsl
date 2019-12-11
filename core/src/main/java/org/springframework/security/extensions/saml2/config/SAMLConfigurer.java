@@ -106,8 +106,8 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 	private SingleLogoutProfile singleLogoutProfile;
 	private SAMLUserDetailsService samlUserDetailsService;
 	private boolean forcePrincipalAsString = false;
-    private AuthenticationSuccessHandler loginSuccessHandler = new SAMLRelayStateSuccessHandler();
-    private LogoutSuccessHandler logoutSuccessHandler = new SimpleUrlLogoutSuccessHandler();
+	private AuthenticationSuccessHandler loginSuccessHandler = new SAMLRelayStateSuccessHandler();
+	private LogoutSuccessHandler logoutSuccessHandler = new SimpleUrlLogoutSuccessHandler();
 
 	private ObjectPostProcessor<Object> objectPostProcessor = new ObjectPostProcessor<Object>() {
 		public <T> T postProcess(T object) {
@@ -122,7 +122,7 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 	@Override
 	public void init(HttpSecurity http) {
 
-        webSSOProfileOptions = webSSOProfileOptions();
+		webSSOProfileOptions = webSSOProfileOptions();
 		metadataProvider = identityProvider.metadataProvider();
 		ExtendedMetadata extendedMetadata = extendedMetadata(identityProvider.discoveryEnabled);
 		extendedMetadataDelegate = extendedMetadataDelegate(extendedMetadata);
@@ -189,15 +189,15 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 		return this;
 	}
 
-    public SAMLConfigurer loginSuccessHandler(AuthenticationSuccessHandler loginSuccessHandler) {
-        this.loginSuccessHandler = loginSuccessHandler;
-        return this;
-    }
+	public SAMLConfigurer loginSuccessHandler(AuthenticationSuccessHandler loginSuccessHandler) {
+		this.loginSuccessHandler = loginSuccessHandler;
+		return this;
+	}
 
-    public SAMLConfigurer logoutSuccessHandler(LogoutSuccessHandler logoutSuccessHandler) {
-        this.logoutSuccessHandler = logoutSuccessHandler;
-        return this;
-    }
+	public SAMLConfigurer logoutSuccessHandler(LogoutSuccessHandler logoutSuccessHandler) {
+		this.logoutSuccessHandler = logoutSuccessHandler;
+		return this;
+	}
 	public IdentityProvider identityProvider() {
 		return identityProvider;
 	}
@@ -337,7 +337,7 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 		samlWebSSOProcessingFilter.setAuthenticationManager(authenticationManagerBuilder.build());
 		samlWebSSOProcessingFilter.setContextProvider(contextProvider);
 		samlWebSSOProcessingFilter.setSAMLProcessor(samlProcessor);
-        samlWebSSOProcessingFilter.setAuthenticationSuccessHandler(successHandler);
+		samlWebSSOProcessingFilter.setAuthenticationSuccessHandler(successHandler);
 		return samlWebSSOProcessingFilter;
 	}
 
@@ -348,8 +348,8 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 	}
 
 	private FilterChainProxy samlFilter(SAMLEntryPoint samlEntryPoint, SAMLLogoutFilter samlLogoutFilter,
-                                        SAMLLogoutProcessingFilter samlLogoutProcessingFilter, SAMLContextProvider contextProvider,
-                                        AuthenticationSuccessHandler successHandler) {
+										SAMLLogoutProcessingFilter samlLogoutProcessingFilter, SAMLContextProvider contextProvider,
+										AuthenticationSuccessHandler successHandler) {
 		List<SecurityFilterChain> chains = new ArrayList<>();
 		chains.add(new DefaultSecurityFilterChain(new AntPathRequestMatcher("/saml/login/**"),
 			samlEntryPoint));
@@ -359,7 +359,7 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 			metadataDisplayFilter(contextProvider)));
 		try {
 			chains.add(new DefaultSecurityFilterChain(new AntPathRequestMatcher("/saml/SSO/**"),
-                    samlWebSSOProcessingFilter(samlAuthenticationProvider, contextProvider, samlProcessor, successHandler)));
+						samlWebSSOProcessingFilter(samlAuthenticationProvider, contextProvider, samlProcessor, successHandler)));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -510,7 +510,7 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 		private SAMLMessageStorageFactory storageFactory;
 		private int responseSkew = 60;
 		private long maxAuthenticationAge = 7200;
-        private String relayState;
+		private String relayState;
 
 		public ServiceProvider protocol(String protocol) {
 			this.protocol = protocol;
@@ -547,10 +547,10 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 			return this;
 		}
 
-        public ServiceProvider relayState(String relayState) {
-            this.relayState = relayState;
-            return this;
-        }
+		public ServiceProvider relayState(String relayState) {
+			this.relayState = relayState;
+			return this;
+		}
 		public KeyStore keyStore() {
 			return keyStore;
 		}
