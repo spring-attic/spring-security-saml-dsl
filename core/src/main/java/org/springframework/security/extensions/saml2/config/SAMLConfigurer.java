@@ -93,7 +93,7 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 	private IdentityProvider identityProvider = new IdentityProvider();
 	private ServiceProvider serviceProvider = new ServiceProvider();
 
-    private WebSSOProfileOptions webSSOProfileOptions;
+	private WebSSOProfileOptions webSSOProfileOptions;
 	private StaticBasicParserPool parserPool = staticBasicParserPool();
 	private SAMLProcessor samlProcessor = samlProcessor();
 	private SAMLDefaultLogger samlLogger = new SAMLDefaultLogger();
@@ -329,7 +329,7 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 		return new HTTPRedirectDeflateBinding(parserPool);
 	}
 
-    private SAMLProcessingFilter samlWebSSOProcessingFilter(SAMLAuthenticationProvider samlAuthenticationProvider, SAMLContextProvider contextProvider, SAMLProcessor samlProcessor, AuthenticationSuccessHandler successHandler) throws Exception {
+	private SAMLProcessingFilter samlWebSSOProcessingFilter(SAMLAuthenticationProvider samlAuthenticationProvider, SAMLContextProvider contextProvider, SAMLProcessor samlProcessor, AuthenticationSuccessHandler successHandler) throws Exception {
 		SAMLProcessingFilter samlWebSSOProcessingFilter = new SAMLProcessingFilter();
 
 		AuthenticationManagerBuilder authenticationManagerBuilder = new AuthenticationManagerBuilder(objectPostProcessor);
@@ -359,7 +359,7 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 			metadataDisplayFilter(contextProvider)));
 		try {
 			chains.add(new DefaultSecurityFilterChain(new AntPathRequestMatcher("/saml/SSO/**"),
-			samlWebSSOProcessingFilter(samlAuthenticationProvider, contextProvider, samlProcessor, successHandler)));
+					samlWebSSOProcessingFilter(samlAuthenticationProvider, contextProvider, samlProcessor, successHandler)));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
