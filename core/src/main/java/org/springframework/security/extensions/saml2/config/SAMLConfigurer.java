@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Timer;
+import java.util.function.Function;
 import java.util.regex.Pattern;
 
 import org.apache.commons.httpclient.HttpClient;
@@ -22,6 +23,7 @@ import org.opensaml.xml.ConfigurationException;
 import org.opensaml.xml.parse.ParserPool;
 import org.opensaml.xml.parse.StaticBasicParserPool;
 import org.opensaml.xml.parse.XMLParserException;
+import org.opensaml.xml.security.BasicSecurityConfiguration;
 import org.opensaml.xml.security.keyinfo.NamedKeyInfoGeneratorManager;
 import org.opensaml.xml.security.x509.CertPathPKIXTrustEvaluator;
 import org.opensaml.xml.security.x509.PKIXTrustEvaluator;
@@ -72,6 +74,8 @@ import org.springframework.security.web.DefaultSecurityFilterChain;
 import org.springframework.security.web.FilterChainProxy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.channel.ChannelProcessingFilter;
+import org.springframework.security.web.authentication.AuthenticationFailureHandler;
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.logout.LogoutHandler;
 import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
 import org.springframework.security.web.authentication.logout.SimpleUrlLogoutSuccessHandler;
@@ -87,7 +91,7 @@ import org.springframework.security.web.util.matcher.RequestMatcher;
  @Author Jean de Klerk
 */
 public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFilterChain, HttpSecurity> {
-	private IdentityProvider identityProvider = new IdentityProvider();
+	private List<IdentityProvider> identityProviders = new ArrayList<>();
 	private ServiceProvider serviceProvider = new ServiceProvider();
 
 	private WebSSOProfileOptions webSSOProfileOptions = webSSOProfileOptions();
@@ -96,13 +100,18 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 	private SAMLDefaultLogger samlLogger = new SAMLDefaultLogger();
 	private WebSSOProfileConsumerImpl webSSOProfileConsumer;
 	private SAMLAuthenticationProvider samlAuthenticationProvider;
-	private MetadataProvider metadataProvider;
-	private ExtendedMetadataDelegate extendedMetadataDelegate;
 	private CachingMetadataManager cachingMetadataManager;
 	private WebSSOProfile webSSOProfile;
 	private SingleLogoutProfile singleLogoutProfile;
 	private SAMLUserDetailsService samlUserDetailsService;
 	private boolean forcePrincipalAsString = false;
+
+	private String signingAlgorithmName;
+	private String signingAlgorithm;
+	private String signingDigest;
+	// These names were chosen to match what Spring already uses for .formLogin()
+	private AuthenticationSuccessHandler successHandler;
+	private AuthenticationFailureHandler failureHandler;
 
 	private ObjectPostProcessor<Object> objectPostProcessor = new ObjectPostProcessor<Object>() {
 		public <T> T postProcess(T object) {
@@ -116,12 +125,8 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 
 	@Override
 	public void init(HttpSecurity http) {
-
-		metadataProvider = identityProvider.metadataProvider();
-		ExtendedMetadata extendedMetadata = extendedMetadata(identityProvider.discoveryEnabled);
-		extendedMetadataDelegate = extendedMetadataDelegate(extendedMetadata);
 		serviceProvider.keyManager = serviceProvider.keyManager();
-		cachingMetadataManager = cachingMetadataManager();
+		cachingMetadataManager = cachingMetadataManager(identityProviders);
 		webSSOProfile = webSSOProfile();
 		singleLogoutProfile = singleLogoutProfile();
 
@@ -133,6 +138,16 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 		samlAuthenticationProvider = samlAuthenticationProvider(webSSOProfileConsumer);
 
 		bootstrap();
+
+		// If we wanted a different signing algorithm, apply it here.  This
+		// needs to happen after bootstrapping, but before we define anything
+		// else.
+		if ( signingAlgorithm != null ) {
+			BasicSecurityConfiguration config =
+					(BasicSecurityConfiguration)Configuration.getGlobalSecurityConfiguration();
+			config.registerSignatureAlgorithmURI(signingAlgorithmName, signingAlgorithm);
+			config.setSignatureReferenceDigestMethod(signingDigest);
+		}
 
 		SAMLContextProvider contextProvider = contextProvider();
 		SAMLEntryPoint samlEntryPoint = samlEntryPoint(contextProvider);
@@ -158,7 +173,7 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 		}
 
 		http
-			.addFilterBefore(metadataGeneratorFilter(samlEntryPoint, extendedMetadata), ChannelProcessingFilter.class)
+			.addFilterBefore(metadataGeneratorFilter(samlEntryPoint, identityProviders), ChannelProcessingFilter.class)
 			.addFilterAfter(samlFilter(samlEntryPoint, samlLogoutFilter, samlLogoutProcessingFilter, contextProvider),
 					BasicAuthenticationFilter.class)
 			.authenticationProvider(samlAuthenticationProvider);
@@ -183,7 +198,74 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 		return this;
 	}
 
+	/**
+	 * Use a different signature algorithm than the default "SHA1".
+	 * @param name the name of the algorithm, such as "RSA"
+	 * @param algorithm the URI of the algorithm to use.  This should be one of
+	 * the algorithms in {@code SignatureConstants}
+	 * @param digest the URI of the digest to use.  This should also be one of
+	 * the algorithms in {@code SignatureConstants}
+	 * @return a properly configured SAMLConfigurer.
+	 */
+	public SAMLConfigurer signingAlgorithm(String name, String algorithm, String digest) {
+		// We can't initialize the signing algorithm until after we've
+		// bootstrapped SAML, so make a note of the args for later.
+		signingAlgorithmName = name;
+		signingAlgorithm = algorithm;
+		signingDigest = digest;
+		return this;
+	}
+
+	/**
+ 	 * Use a different authentication provider for populating the Security
+ 	 * Context when a SAML login happens.
+ 	 *
+ 	 * @param samlAuthenticationProvider an instance of
+ 	 * {@code SAMLAuthenticationProvider} that will do the work of
+ 	 * authenticating the user in the SAML assertion.  This is really handy
+ 	 * when we want to trust an IDP for authentication, but not authorization.
+ 	 * @return The SAMLConfigurer so we can chain methods.
+ 	 */
+	public SAMLConfigurer authenticationProvider(SAMLAuthenticationProvider samlAuthenticationProvider) {
+		this.samlAuthenticationProvider = samlAuthenticationProvider;
+		return this;
+	}
+
+	/**
+ 	 * Set an {@code AuthenticationSuccessHandler} to use after a successful
+ 	 * SAML login.
+ 	 *
+ 	 * @param successHandler an implementation of
+ 	 * {@code AuthenticationSuccessHandler} that will run after a successful
+ 	 * SAML login.
+ 	 * @return The SAMLConfigurer so we can chain methods.
+ 	 */
+	public SAMLConfigurer successHandler(AuthenticationSuccessHandler successHandler) {
+		this.successHandler = successHandler;
+		return this;
+	}
+
+	/**
+ 	 * Set an {@code AuthenticationFailureHandler} to use after a failed SAML
+ 	 * login.
+ 	 *
+ 	 * @param failureHandler an implementation of
+ 	 * {@code AuthenticationFailureHandler} that will run after a failed SAML
+ 	 * login.
+ 	 * @return The SAMLConfigurer so we can chain methods.
+ 	 */
+	public SAMLConfigurer failureHandler(AuthenticationFailureHandler failureHandler) {
+		this.failureHandler = failureHandler;
+		return this;
+	}
+
+	public SAMLConfigurer delegateConfig(Function<SAMLConfigurer, SAMLConfigurer> delegate) {
+		return delegate.apply(this);
+	}
+
 	public IdentityProvider identityProvider() {
+		IdentityProvider identityProvider = new IdentityProvider();
+		identityProviders.add(identityProvider);
 		return identityProvider;
 	}
 
@@ -248,9 +330,15 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 		return new SAMLProcessorImpl(bindings);
 	}
 
-	private CachingMetadataManager cachingMetadataManager() {
+	private CachingMetadataManager cachingMetadataManager(List<IdentityProvider> identityProviders) {
+		if ( identityProviders == null || identityProviders.size() < 1 ) {
+			throw new IllegalStateException("No Identity Providers were configured!");
+		}
 		List<MetadataProvider> providers = new ArrayList<>();
-		providers.add(extendedMetadataDelegate);
+		for ( IdentityProvider identityProvider : identityProviders ) {
+			ExtendedMetadata extendedMetadata = extendedMetadata(identityProvider.discoveryEnabled);
+			providers.add(extendedMetadataDelegate(identityProvider, extendedMetadata));
+		}
 
 		CachingMetadataManager cachingMetadataManager = null;
 		try {
@@ -273,9 +361,9 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 		return parserPool;
 	}
 
-	private ExtendedMetadataDelegate extendedMetadataDelegate(ExtendedMetadata extendedMetadata) {
-		ExtendedMetadataDelegate extendedMetadataDelegate = new ExtendedMetadataDelegate(metadataProvider, extendedMetadata);
-		extendedMetadataDelegate.setMetadataTrustCheck(false);
+	private ExtendedMetadataDelegate extendedMetadataDelegate(IdentityProvider identityProvider, ExtendedMetadata extendedMetadata) {
+		ExtendedMetadataDelegate extendedMetadataDelegate = new ExtendedMetadataDelegate(identityProvider.metadataProvider(), extendedMetadata);
+		extendedMetadataDelegate.setMetadataTrustCheck(identityProvider.metadataTrustCheckEnabled);
 		extendedMetadataDelegate.setMetadataRequireSignature(false);
 		return extendedMetadataDelegate;
 	}
@@ -323,10 +411,41 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 		samlWebSSOProcessingFilter.setAuthenticationManager(authenticationManagerBuilder.build());
 		samlWebSSOProcessingFilter.setContextProvider(contextProvider);
 		samlWebSSOProcessingFilter.setSAMLProcessor(samlProcessor);
+		// If we've been given success or failure handlers, use them here.  If
+		// not, do nothing so we still get the defaults.
+		if ( successHandler != null ) {
+			samlWebSSOProcessingFilter.setAuthenticationSuccessHandler(successHandler);
+		}
+		if ( failureHandler != null ) {
+			samlWebSSOProcessingFilter.setAuthenticationFailureHandler(failureHandler);
+		}
 		return samlWebSSOProcessingFilter;
 	}
 
-	private MetadataGeneratorFilter metadataGeneratorFilter(SAMLEntryPoint samlEntryPoint, ExtendedMetadata extendedMetadata) {
+	/**
+	 * Create the metadata generator filter used by the HTTP filter chain.
+	 * This filter chain will control (among other thing) where users get
+	 * redirected when they access a protected resource and IDP discovery is
+	 * turned on.  When there is only one Identity Provider, this is simple,
+	 * but it is not so simple when there is more than one.  Users can only
+	 * be redirected to a single URL, so we'll use the URL of the first IDP
+	 * with discovery enabled.
+	 * @param samlEntryPoint
+	 * @param identityProviders
+	 * @return
+	 */
+	private MetadataGeneratorFilter metadataGeneratorFilter(SAMLEntryPoint samlEntryPoint, List<IdentityProvider> identityProviders) {
+		IdentityProvider provider = identityProviders.stream()
+				.filter( idp -> idp.discoveryEnabled)
+				.findFirst()
+				.orElse(null);
+		// This bit is not obvious...  If we get a provider from the above filter,
+		// then it means there was at least one provider with discovery enabled.
+		// If the provider is null, then there are no IDPs configured with
+		// discovery.
+		boolean discoveryEnabled = (provider != null);
+		ExtendedMetadata extendedMetadata = extendedMetadata(discoveryEnabled);
+		extendedMetadata.setSignMetadata(true);
 		MetadataGeneratorFilter metadataGeneratorFilter = new MetadataGeneratorFilter(getMetadataGenerator(samlEntryPoint, extendedMetadata));
 		metadataGeneratorFilter.setManager(cachingMetadataManager);
 		return metadataGeneratorFilter;
@@ -372,7 +491,10 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 	}
 
 	private SAMLAuthenticationProvider samlAuthenticationProvider(WebSSOProfileConsumerImpl webSSOProfileConsumer) {
-		SAMLAuthenticationProvider samlAuthenticationProvider = new SAMLAuthenticationProvider();
+		// If we weren't given a provider, use the default.
+		if ( samlAuthenticationProvider == null ) {
+			samlAuthenticationProvider = new SAMLAuthenticationProvider();
+		}
 		samlAuthenticationProvider.setForcePrincipalAsString(forcePrincipalAsString);
 		samlAuthenticationProvider.setSamlLogger(samlLogger);
 		samlAuthenticationProvider.setConsumer(webSSOProfileConsumer);
@@ -420,6 +542,7 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 
 		private String metadataFilePath;
 		private boolean discoveryEnabled = true;
+		private boolean metadataTrustCheckEnabled = false;
 
 		public IdentityProvider metadataFilePath(String metadataFilePath) {
 			this.metadataFilePath = metadataFilePath;
@@ -428,6 +551,11 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 
 		public IdentityProvider discoveryEnabled(boolean discoveryEnabled) {
 			this.discoveryEnabled = discoveryEnabled;
+			return this;
+		}
+
+		public IdentityProvider metadataTrustCheckEnabled(boolean metadataTrustCheckEnabled) {
+			this.metadataTrustCheckEnabled = metadataTrustCheckEnabled;
 			return this;
 		}
 
@@ -525,6 +653,13 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 			return this;
 		}
 
+		/**
+		 * Sets maximum time between users authentication and processing of an
+		 * authentication statement.
+		 *
+		 * @param maxAuthenticationAge authentication age (in seconds)
+		 * @return The SAMLConfigurer so we can chain methods.
+		 */
 		public ServiceProvider maxAuthenticationAge(long maxAuthenticationAge) {
 			this.maxAuthenticationAge = maxAuthenticationAge;
 			return this;
