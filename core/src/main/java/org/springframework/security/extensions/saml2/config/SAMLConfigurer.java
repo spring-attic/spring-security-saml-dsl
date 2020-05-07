@@ -41,6 +41,7 @@ import org.springframework.security.saml.SAMLEntryPoint;
 import org.springframework.security.saml.SAMLLogoutFilter;
 import org.springframework.security.saml.SAMLLogoutProcessingFilter;
 import org.springframework.security.saml.SAMLProcessingFilter;
+import org.springframework.security.saml.SAMLRelayStateSuccessHandler;
 import org.springframework.security.saml.context.SAMLContextProvider;
 import org.springframework.security.saml.context.SAMLContextProviderLB;
 import org.springframework.security.saml.key.JKSKeyManager;
@@ -72,7 +73,9 @@ import org.springframework.security.web.DefaultSecurityFilterChain;
 import org.springframework.security.web.FilterChainProxy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.channel.ChannelProcessingFilter;
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.logout.LogoutHandler;
+import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
 import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
 import org.springframework.security.web.authentication.logout.SimpleUrlLogoutSuccessHandler;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
@@ -90,7 +93,7 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 	private IdentityProvider identityProvider = new IdentityProvider();
 	private ServiceProvider serviceProvider = new ServiceProvider();
 
-	private WebSSOProfileOptions webSSOProfileOptions = webSSOProfileOptions();
+	private WebSSOProfileOptions webSSOProfileOptions;
 	private StaticBasicParserPool parserPool = staticBasicParserPool();
 	private SAMLProcessor samlProcessor = samlProcessor();
 	private SAMLDefaultLogger samlLogger = new SAMLDefaultLogger();
@@ -103,6 +106,8 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 	private SingleLogoutProfile singleLogoutProfile;
 	private SAMLUserDetailsService samlUserDetailsService;
 	private boolean forcePrincipalAsString = false;
+	private AuthenticationSuccessHandler loginSuccessHandler = new SAMLRelayStateSuccessHandler();
+	private LogoutSuccessHandler logoutSuccessHandler = new SimpleUrlLogoutSuccessHandler();
 
 	private ObjectPostProcessor<Object> objectPostProcessor = new ObjectPostProcessor<Object>() {
 		public <T> T postProcess(T object) {
@@ -117,6 +122,7 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 	@Override
 	public void init(HttpSecurity http) {
 
+		webSSOProfileOptions = webSSOProfileOptions();
 		metadataProvider = identityProvider.metadataProvider();
 		ExtendedMetadata extendedMetadata = extendedMetadata(identityProvider.discoveryEnabled);
 		extendedMetadataDelegate = extendedMetadataDelegate(extendedMetadata);
@@ -159,7 +165,7 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 
 		http
 			.addFilterBefore(metadataGeneratorFilter(samlEntryPoint, extendedMetadata), ChannelProcessingFilter.class)
-			.addFilterAfter(samlFilter(samlEntryPoint, samlLogoutFilter, samlLogoutProcessingFilter, contextProvider),
+			.addFilterAfter(samlFilter(samlEntryPoint, samlLogoutFilter, samlLogoutProcessingFilter, contextProvider, loginSuccessHandler),
 					BasicAuthenticationFilter.class)
 			.authenticationProvider(samlAuthenticationProvider);
 	}
@@ -183,6 +189,15 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 		return this;
 	}
 
+	public SAMLConfigurer loginSuccessHandler(AuthenticationSuccessHandler loginSuccessHandler) {
+		this.loginSuccessHandler = loginSuccessHandler;
+		return this;
+	}
+
+	public SAMLConfigurer logoutSuccessHandler(LogoutSuccessHandler logoutSuccessHandler) {
+		this.logoutSuccessHandler = logoutSuccessHandler;
+		return this;
+	}
 	public IdentityProvider identityProvider() {
 		return identityProvider;
 	}
@@ -208,9 +223,7 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 		return samlEntryPoint;
 	}
 
-	private SimpleUrlLogoutSuccessHandler successLogoutHandler() {
-		SimpleUrlLogoutSuccessHandler logoutSuccessHandler = new SimpleUrlLogoutSuccessHandler();
-		logoutSuccessHandler.setDefaultTargetUrl("/");
+	private LogoutSuccessHandler successLogoutHandler() {
 		return logoutSuccessHandler;
 	}
 
@@ -290,6 +303,7 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 	private WebSSOProfileOptions webSSOProfileOptions() {
 		WebSSOProfileOptions webSSOProfileOptions = new WebSSOProfileOptions();
 		webSSOProfileOptions.setIncludeScoping(false);
+		webSSOProfileOptions.setRelayState(serviceProvider.relayState);
 		return webSSOProfileOptions;
 	}
 
@@ -315,7 +329,7 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 		return new HTTPRedirectDeflateBinding(parserPool);
 	}
 
-	private SAMLProcessingFilter samlWebSSOProcessingFilter(SAMLAuthenticationProvider samlAuthenticationProvider, SAMLContextProvider contextProvider, SAMLProcessor samlProcessor) throws Exception {
+	private SAMLProcessingFilter samlWebSSOProcessingFilter(SAMLAuthenticationProvider samlAuthenticationProvider, SAMLContextProvider contextProvider, SAMLProcessor samlProcessor, AuthenticationSuccessHandler successHandler) throws Exception {
 		SAMLProcessingFilter samlWebSSOProcessingFilter = new SAMLProcessingFilter();
 
 		AuthenticationManagerBuilder authenticationManagerBuilder = new AuthenticationManagerBuilder(objectPostProcessor);
@@ -323,6 +337,7 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 		samlWebSSOProcessingFilter.setAuthenticationManager(authenticationManagerBuilder.build());
 		samlWebSSOProcessingFilter.setContextProvider(contextProvider);
 		samlWebSSOProcessingFilter.setSAMLProcessor(samlProcessor);
+		samlWebSSOProcessingFilter.setAuthenticationSuccessHandler(successHandler);
 		return samlWebSSOProcessingFilter;
 	}
 
@@ -333,7 +348,8 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 	}
 
 	private FilterChainProxy samlFilter(SAMLEntryPoint samlEntryPoint, SAMLLogoutFilter samlLogoutFilter,
-										SAMLLogoutProcessingFilter samlLogoutProcessingFilter, SAMLContextProvider contextProvider) {
+										SAMLLogoutProcessingFilter samlLogoutProcessingFilter, SAMLContextProvider contextProvider,
+										AuthenticationSuccessHandler successHandler) {
 		List<SecurityFilterChain> chains = new ArrayList<>();
 		chains.add(new DefaultSecurityFilterChain(new AntPathRequestMatcher("/saml/login/**"),
 			samlEntryPoint));
@@ -343,7 +359,7 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 			metadataDisplayFilter(contextProvider)));
 		try {
 			chains.add(new DefaultSecurityFilterChain(new AntPathRequestMatcher("/saml/SSO/**"),
-				samlWebSSOProcessingFilter(samlAuthenticationProvider, contextProvider, samlProcessor)));
+					samlWebSSOProcessingFilter(samlAuthenticationProvider, contextProvider, samlProcessor, successHandler)));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -494,6 +510,7 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 		private SAMLMessageStorageFactory storageFactory;
 		private int responseSkew = 60;
 		private long maxAuthenticationAge = 7200;
+		private String relayState;
 
 		public ServiceProvider protocol(String protocol) {
 			this.protocol = protocol;
@@ -530,6 +547,10 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 			return this;
 		}
 
+		public ServiceProvider relayState(String relayState) {
+			this.relayState = relayState;
+			return this;
+		}
 		public KeyStore keyStore() {
 			return keyStore;
 		}
