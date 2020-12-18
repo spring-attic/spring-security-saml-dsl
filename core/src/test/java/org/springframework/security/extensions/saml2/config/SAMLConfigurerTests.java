@@ -57,7 +57,7 @@ public class SAMLConfigurerTests {
 
 	@Test
 	public void loginRendersSAMLRequest() throws Exception {
-		mockMvc.perform(get("/saml/login").param("disco", "true").param("idp","http://www.okta.com/exk5id72igJRNtH5M0h7"))
+		mockMvc.perform(get("/saml/login").param("disco", "true").param("idp","https://www.okta.com/exk5id72igJRNtH5M0h7"))
 			.andExpect(status().isOk())
 			.andExpect(content().string(containsString("<input type=\"hidden\" name=\"SAMLRequest\" value=\"")));
 
